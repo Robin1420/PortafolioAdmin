@@ -10,54 +10,60 @@ const PORT = 5000;
 // Configuración de CORS
 app.use(cors());
 
-// Crear directorio si no existe
-const uploadDir = path.join(__dirname, '../public/assets/DatosPersonales/foto');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
+// Middleware para parsear JSON y form-urlencoded
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Configuración de multer para fotos de perfil
-const fotoStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    // Aseguramos que el directorio existe
-    if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
-    }
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    // Usar un nombre temporal primero
-    const tempName = 'temp-foto-perfil';
-    const nombreFinal = `${tempName}-${Date.now()}.png`;
-    console.log('Guardando temporalmente como:', nombreFinal);
-    cb(null, nombreFinal);
+// Configuración de directorios
+const fotoDir = path.join(__dirname, '../public/assets/DatosPersonales/foto');
+const proyectosDir = path.join(__dirname, '../public/assets/Proyectos');
+const cvDir = path.join(__dirname, '../public/assets/DatosPersonales/documento');
+
+// Crear directorios si no existen
+[ fotoDir, proyectosDir, cvDir ].forEach(dir => {
+  if (!fs.existsSync(dir)) {
+    fs.mkdirSync(dir, { recursive: true });
   }
 });
 
-// Configuración de multer para CVs
-const cvDir = path.join(__dirname, '../public/assets/DatosPersonales/documento');
-if (!fs.existsSync(cvDir)) {
-  fs.mkdirSync(cvDir, { recursive: true });
-}
-
+// Configuración de multer para CV
 const cvStorage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    if (!fs.existsSync(cvDir)) {
-      fs.mkdirSync(cvDir, { recursive: true });
-    }
+  destination: (req, file, cb) => {
     cb(null, cvDir);
   },
-  filename: function (req, file, cb) {
-    // Usar el nombre proporcionado en el cuerpo de la solicitud o generar uno por defecto
-    const cvNombre = req.body.cv_nombre || `cv-${Date.now()}.${file.originalname.split('.').pop()}`;
-    console.log('Guardando CV como:', cvNombre);
-    cb(null, cvNombre);
+  filename: (req, file, cb) => {
+    // Usar el nombre original del archivo
+    const filename = file.originalname;
+    cb(null, filename);
   }
 });
 
-// Configuración de multer para fotos
-const upload = multer({ 
-  storage: fotoStorage,
+// Configuración de multer para fotos de perfil
+const fotoPerfilStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, fotoDir);
+  },
+  filename: (req, file, cb) => {
+    // Siempre usar el mismo nombre
+    const filename = 'foto.png';
+    const filePath = path.join(fotoDir, filename);
+    
+    // Eliminar archivo existente si existe
+    if (fs.existsSync(filePath)) {
+      try {
+        fs.unlinkSync(filePath);
+      } catch (err) {
+        console.error('Error al eliminar archivo existente:', err);
+      }
+    }
+    
+    cb(null, filename);
+  }
+});
+
+// Middleware para subir foto de perfil
+const uploadFotoPerfil = multer({
+  storage: fotoPerfilStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) {
@@ -66,19 +72,15 @@ const upload = multer({
       cb(new Error('Solo se permiten imágenes'), false);
     }
   }
-});
+}).single('foto');
 
-// Configuración de multer para CVs
+// Middleware para subir CV
 const uploadCv = multer({
   storage: cvStorage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB para CVs
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
   fileFilter: (req, file, cb) => {
-    const allowedTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-    ];
-    
+    // Solo permitir PDF, DOC y DOCX
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -87,50 +89,26 @@ const uploadCv = multer({
   }
 });
 
-// Middleware para parsear el form-data
-app.use(express.urlencoded({ extended: true }));
-
-// Ruta para subir la imagen
-app.post('/api/upload', upload.single('foto'), (req, res) => {
+// Ruta para subir la imagen de perfil
+app.post('/api/upload', uploadFotoPerfil, (req, res) => {
   try {
     console.log('Archivo recibido:', req.file);
     console.log('Cuerpo de la solicitud:', req.body);
     
     if (!req.file) {
       console.error('No se recibió ningún archivo');
-      return res.status(400).json({ 
-        success: false,
-        error: 'No se proporcionó ninguna imagen' 
-      });
+      return res.status(400).json({ error: 'No se recibió ningún archivo' });
     }
+
+    // Determinar la ruta base según la carpeta
+    const carpeta = req.body.carpeta || 'DatosPersonales';
+    const rutaBase = carpeta === 'Proyectos' ? 'Proyectos' : 'DatosPersonales/foto';
     
-    // Obtener el valor de foto_perfil del cuerpo de la solicitud
-    const fotoPerfil = req.body.foto_perfil;
-    if (!fotoPerfil) {
-      // Eliminar el archivo temporal
-      fs.unlinkSync(req.file.path);
-      console.error('No se proporcionó el campo foto_perfil');
-      return res.status(400).json({
-        success: false,
-        error: 'Se requiere el campo foto_perfil'
-      });
-    }
-    
-    // Construir rutas
-    const rutaVieja = req.file.path;
-    const directorio = path.dirname(rutaVieja);
-    const rutaNueva = path.join(directorio, fotoPerfil);
-    
-    // Renombrar el archivo
-    fs.renameSync(rutaVieja, rutaNueva);
-    
-    console.log(`Archivo renombrado de ${path.basename(rutaVieja)} a ${fotoPerfil}`);
-    
-    res.json({ 
+    // Devolver solo el nombre del archivo, el frontend construirá la ruta completa si es necesario
+    res.status(200).json({ 
       success: true,
-      foto_perfil: fotoPerfil, // Devolver el nombre exacto del archivo
-      message: 'Imagen subida correctamente',
-      imageUrl: `/assets/DatosPersonales/foto/${fotoPerfil}`
+      message: 'Archivo subido correctamente',
+      foto_perfil: req.file.filename
     });
   } catch (error) {
     console.error('Error al subir la imagen:', error);

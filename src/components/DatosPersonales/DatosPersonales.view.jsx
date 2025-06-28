@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useDatosPersonales } from './DatosPersonales.controllers';
-import EditarDatosModal from './EditarDatosModal';
-import FotoModal from './FotoModal';
-import CvModal from './cvModal';
+import EditarDatosModal from './Editar.modal';
+import FotoModal from './Foto.modal';
+import CvModal from './Documento.modal';
 
 // Componente de notificación
 const Notification = ({ message, type, onClose }) => {
@@ -385,12 +385,14 @@ const DatosPersonalesView = () => {
                   <div className="h-full w-full rounded-full border-4 border-white shadow-lg bg-white overflow-hidden">
                     <img 
                       className="w-full h-full object-cover" 
-                      src={datos[0]?.foto_perfil ? `/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}` : 'https://via.placeholder.com/512'}
+                      src={`http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${localStorage.getItem('profile_photo_timestamp') || '0'}`}
                       alt="Foto de perfil"
                       onError={(e) => {
+                        console.error('Error al cargar la imagen:', e);
                         e.target.onerror = null;
-                        e.target.src = 'https://via.placeholder.com/512';
+                        e.target.src = 'https://via.placeholder.com/150';
                       }}
+                      key={`profile-photo-${localStorage.getItem('profile_photo_timestamp') || 'default'}`}
                     />
                   </div>
                   <div className="absolute inset-0 rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center transition-all duration-300">
@@ -577,7 +579,9 @@ const DatosPersonalesView = () => {
         <FotoModal
           isOpen={showArchivosModal}
           onClose={closeArchivosModal}
-          fotoPerfil={datos[0]?.foto_perfil ? `http://localhost:5000/assets/DatosPersonales/foto/${datos[0].foto_perfil}` : ''}
+          fotoPerfil={datos[0]?.foto_perfil 
+            ? `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${localStorage.getItem('profile_photo_timestamp') || '0'}` 
+            : ''}
           onCambiarFoto={handleImageChange}
           isSubmitting={isSubmitting}
         />

@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { showNotification as showNotif } from '../../utils/notifications';
 import { API_URL } from '../../utils/constants';
 
 export const useDatosPersonales = () => {
@@ -83,81 +82,74 @@ export const useDatosPersonales = () => {
       setIsSubmitting(true);
       console.log('Archivo seleccionado:', file);
       
-      // Asegurarse de que tenemos el valor de foto_perfil
-      if (!datos[0]?.foto_perfil) {
-        throw new Error('No se encontró el valor de foto_perfil');
-      }
-      
-      const nombreFoto = datos[0].foto_perfil;
-      console.log('Enviando foto_perfil al servidor:', nombreFoto);
-      
       // Crear FormData para enviar el archivo
       const formData = new FormData();
       formData.append('foto', file);
       
-      // Agregar foto_perfil como un campo de texto plano
-      formData.append('foto_perfil', nombreFoto);
-      
-      console.log('FormData creado, enviando al servidor...');
-      console.log('Contenido de FormData:');
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ', pair[1]);
-      }
-      
       console.log('Enviando imagen al servidor...');
       
-      try {
-        const response = await fetch('http://localhost:5000/api/upload', {
-          method: 'POST',
-          body: formData,
-          // No establecer Content-Type manualmente, el navegador lo hará con el límite correcto
-        });
+      const response = await fetch('http://localhost:5000/api/upload', {
+        method: 'POST',
+        body: formData
+      });
+      
+      console.log('Respuesta recibida del servidor, estado:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Error del servidor:', errorText);
+        let errorMessage = `Error al subir la imagen: ${response.statusText}`;
         
-        console.log('Respuesta recibida del servidor, estado:', response.status);
-        
-        const result = await response.json().catch(e => {
-          console.error('Error al parsear la respuesta JSON:', e);
-          throw new Error('Respuesta del servidor no válida');
-        });
-        
-        console.log('Respuesta del servidor:', result);
-        
-        if (!response.ok) {
-          throw new Error(result.error || `Error al subir la imagen: ${response.statusText}`);
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.error || errorMessage;
+        } catch (e) {
+          // No es un JSON válido, usar el texto como está
+          if (errorText) {
+            errorMessage = errorText;
+          }
         }
         
-        // Actualizar el estado con el nuevo nombre de archivo
-        setDatos(prev => [{
-          ...prev[0],
-          foto_perfil: result.foto_perfil
-        }]);
-        
-        // Actualizar el formulario con el nuevo nombre de archivo
-        setFormData(prev => ({
-          ...prev,
-          foto_perfil: result.foto_perfil
-        }));
-        
-        // Guardar el nombre del archivo en localStorage
-        localStorage.setItem('profile_photo', result.foto_perfil);
-        
-        // Mostrar notificación de éxito
-        setNotification({
-          message: 'Foto de perfil actualizada correctamente',
-          type: 'success'
-        });
-        
-        // Forzar actualización del componente
-        // forceUpdate();
-        
-        return result;
-      } catch (error) {
-        console.error('Error en la petición:', error);
-        throw error; // Re-lanzar el error para que lo maneje el catch externo
+        throw new Error(errorMessage);
       }
-    } catch (err) {
-      console.error('Error al subir la imagen:', err);
-      showNotification('Error al subir la foto de perfil: ' + err.message, 'error');
+      
+      // Forzar recarga de la imagen con un nuevo timestamp
+      const timestamp = Date.now();
+      localStorage.setItem('profile_photo_timestamp', timestamp);
+      
+      // Actualizar el estado local con el nuevo timestamp
+      const updatedData = {
+        ...datos[0],
+        foto_perfil: `foto.png?t=${timestamp}`
+      };
+      
+      setDatos([updatedData]);
+      
+      // Actualizar el formulario
+      setFormData(prev => ({
+        ...prev,
+        foto_perfil: `foto.png?t=${timestamp}`
+      }));
+      
+      // Mostrar notificación de éxito
+      setNotification({
+        message: 'Foto de perfil actualizada correctamente',
+        type: 'success',
+        autoHide: true
+      });
+      
+      // Forzar actualización del componente
+      forceUpdate();
+      
+      return { success: true, timestamp };
+    } catch (error) {
+      console.error('Error en handleImageChange:', error);
+      setError(error.message);
+      setNotification({
+        message: `Error al subir la imagen: ${error.message}`,
+        type: 'error'
+      });
+      throw error; // Re-lanzar el error para manejarlo en el componente
     } finally {
       setIsSubmitting(false);
     }

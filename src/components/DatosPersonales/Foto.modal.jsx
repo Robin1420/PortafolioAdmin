@@ -11,32 +11,31 @@ const FotoModal = ({
   const fileInputRef = useRef(null);
   const [preview, setPreview] = useState('');
 
-  // Manejar la vista previa de la imagen y nombre del CV
+  // Manejar la vista previa de la imagen
   useEffect(() => {
-    // Configurar vista previa de la imagen
-    if (fotoPerfil) {
-      if (fotoPerfil.startsWith('data:')) {
-        // Es una vista previa de archivo
-        setPreview(fotoPerfil);
-      } else {
-        // Usar la imagen guardada
-        const savedImage = localStorage.getItem('profile_photo');
-        if (savedImage) {
-          setPreview(savedImage);
-        } else if (fotoPerfil.startsWith('http')) {
-          setPreview(fotoPerfil);
-        } else {
-          // Si no hay imagen guardada, usar placeholder
-          setPreview('https://via.placeholder.com/512');
-        }
-      }
-    } else {
-      // Si no hay foto, mostrar placeholder
+    // Si hay un archivo seleccionado, crear una vista previa
+    if (fotoPerfil instanceof File) {
+      const imageUrl = URL.createObjectURL(fotoPerfil);
+      setPreview(imageUrl);
+      
+      // Limpiar la URL cuando el componente se desmonte o cambie la imagen
+      return () => {
+        URL.revokeObjectURL(imageUrl);
+      };
+    } 
+    // Si hay una URL de imagen, usarla
+    else if (fotoPerfil && (fotoPerfil.startsWith('http') || fotoPerfil.startsWith('data:'))) {
+      // Agregar timestamp para evitar caché
+      const timestamp = new Date().getTime();
+      const separator = fotoPerfil.includes('?') ? '&' : '?';
+      setPreview(`${fotoPerfil}${separator}t=${timestamp}`);
+    } 
+    // Si no hay imagen, mostrar placeholder
+    else {
       setPreview('https://via.placeholder.com/512');
     }
-    
   }, [fotoPerfil]);
-
+  
   // Limpiar la URL de la vista previa cuando el componente se desmonte
   useEffect(() => {
     return () => {
@@ -45,15 +44,6 @@ const FotoModal = ({
       }
     };
   }, [preview]);
-
-  // Actualizar la vista previa cuando cambia la foto de perfil
-  useEffect(() => {
-    if (fotoPerfil) {
-      setPreview(fotoPerfil);
-    } else {
-      setPreview('https://via.placeholder.com/512');
-    }
-  }, [fotoPerfil]);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
