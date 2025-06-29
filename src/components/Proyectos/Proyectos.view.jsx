@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useProyectos } from './Proyectos.controllers';
+import AgregarModal from './Agregar.modal';
 
 const ProyectosView = () => {
   const {
@@ -10,16 +11,15 @@ const ProyectosView = () => {
     currentProyecto,
     notification,
     isSubmitting,
-    createProyecto,
-    updateProyecto,
-    deleteProyecto,
-    handleEdit,
+    isUploading,
+    fetchProyectos,
+    handleOpenModal,
     handleCloseModal,
-    handleSubmit,
+    handleEdit,
+    handleSubmit: submitHandler,
+    handleDelete,
+    formatearFecha,
     showNotification,
-    formatearFecha, // Asegurarse de obtener formatearFecha del controlador
-    setCurrentProyecto, // Asegurarse de obtener setCurrentProyecto
-    setIsModalOpen,
   } = useProyectos();
 
   // Estado para el formulario
@@ -34,11 +34,38 @@ const ProyectosView = () => {
     visible: true,
   });
 
+  // Efecto para actualizar el formulario cuando se edita un proyecto
+  useEffect(() => {
+    if (currentProyecto) {
+      setFormData({
+        titulo: currentProyecto.titulo || '',
+        descripcion: currentProyecto.descripcion || '',
+        tecnologias: Array.isArray(currentProyecto.tecnologias) 
+          ? currentProyecto.tecnologias.join(', ') 
+          : currentProyecto.tecnologias || '',
+        imagen: currentProyecto.imagen || null,
+        enlace_demo: currentProyecto.enlace_demo || '',
+        enlace_codigo: currentProyecto.enlace_codigo || '',
+        fecha: currentProyecto.fecha || new Date().toISOString().split('T')[0],
+        visible: currentProyecto.visible !== undefined ? currentProyecto.visible : true,
+      });
+    } else {
+      setFormData({
+        titulo: '',
+        descripcion: '',
+        tecnologias: '',
+        imagen: null,
+        enlace_demo: '',
+        enlace_codigo: '',
+        fecha: new Date().toISOString().split('T')[0],
+        visible: true,
+      });
+    }
+  }, [currentProyecto]);
+
   // Manejar cambios en el formulario
   const handleInputChange = (e) => {
     const { name, value, type, checked, files } = e.target;
-    
-    console.log('Campo cambiado:', { name, value, type });
     
     if (type === 'file') {
       setFormData(prev => ({
@@ -67,35 +94,32 @@ const ProyectosView = () => {
   };
 
   // Manejar envío del formulario
-  const handleFormSubmit = async (e) => {
-    e.preventDefault();
-    console.log('Enviando formulario con datos:', formData);
-    
-    // Asegurarse de que la fecha esté en el formato correcto
-    const datosAEnviar = {
-      ...formData,
-      fecha: formatearFecha(formData.fecha) || new Date().toISOString().split('T')[0]
-    };
-    
-    console.log('Datos a enviar al servidor:', datosAEnviar);
-    
+  const handleFormSubmit = async (formData) => {
     try {
-      await handleSubmit(datosAEnviar);
-      // Resetear el formulario después de enviar exitosamente
-      setFormData({
-        titulo: '',
-        descripcion: '',
-        tecnologias: '',
-        imagen: null,
-        enlace_demo: '',
-        enlace_codigo: '',
-        fecha: new Date().toISOString().split('T')[0],
-        visible: true,
-      });
-      showNotification('Proyecto guardado exitosamente', 'success');
+      await submitHandler(formData, currentProyecto, handleCloseModal);
+      // No es necesario resetear el formulario aquí, ya que el controlador se encarga de cerrar el modal
+      // y el efecto se encargará de resetear el formulario cuando currentProyecto cambie a null
     } catch (error) {
       console.error('Error al guardar el proyecto:', error);
-      showNotification(`Error al guardar el proyecto: ${error.message}`, 'error');
+      
+      // Mostrar detalles adicionales del error si están disponibles
+      let mensajeError = error.message || 'Error desconocido al guardar el proyecto';
+      
+      // Si hay detalles adicionales en el error, mostrarlos
+      if (error.details) {
+        if (typeof error.details === 'object') {
+          mensajeError = Object.entries(error.details)
+            .map(([campo, errores]) => {
+              const mensajes = Array.isArray(errores) ? errores.join(', ') : String(errores);
+              return `${campo}: ${mensajes}`;
+            })
+            .join('; ');
+        } else {
+          mensajeError = String(error.details);
+        }
+      }
+      
+      showNotification(`Error: ${mensajeError}`, 'error');
     }
   };
 
@@ -168,7 +192,7 @@ const ProyectosView = () => {
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteProyecto(proyecto.id);
+                  handleDelete(proyecto.id);
                 }}
                 className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors p-2 rounded-lg"
                 title="Eliminar proyecto"
@@ -264,10 +288,7 @@ const ProyectosView = () => {
         
         {/* Tarjeta de Agregar Proyecto - Al final de la lista */}
         <div 
-          onClick={() => {
-            setCurrentProyecto(null);
-            setIsModalOpen(true);
-          }}
+          onClick={() => handleOpenModal()}
           className="group bg-white rounded-xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 border-dashed border-gray-300 hover:border-blue-400 flex flex-col items-center justify-center min-h-[300px] cursor-pointer hover:bg-blue-50"
         >
           <div className="text-center p-6">
@@ -282,157 +303,16 @@ const ProyectosView = () => {
         </div>
       </div>
 
-      {/* Modal para agregar/editar proyecto */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center border-b border-gray-200 p-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                {currentProyecto ? 'Editar Proyecto' : 'Nuevo Proyecto'}
-              </h3>
-              <button
-                onClick={handleCloseModal}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            
-            <form onSubmit={handleFormSubmit} className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Título</label>
-                  <input
-                    type="text"
-                    name="titulo"
-                    value={formData.titulo}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Descripción</label>
-                  <textarea
-                    name="descripcion"
-                    value={formData.descripcion}
-                    onChange={handleInputChange}
-                    rows="3"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tecnologías (separadas por comas)</label>
-                  <input
-                    type="text"
-                    name="tecnologias"
-                    value={formData.tecnologias}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="mb-4">
-                    <label htmlFor="enlace_demo" className="block text-sm font-medium text-gray-700 mb-1">Enlace Demo</label>
-                    <input
-                      type="url"
-                      id="enlace_demo"
-                      name="enlace_demo"
-                      value={formData.enlace_demo || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="https://example.com/demo"
-                    />
-                  </div>
-                  <div className="mb-4">
-                    <label htmlFor="enlace_codigo" className="block text-sm font-medium text-gray-700 mb-1">Enlace Código</label>
-                    <input
-                      type="url"
-                      id="enlace_codigo"
-                      name="enlace_codigo"
-                      value={formData.enlace_codigo || ''}
-                      onChange={handleInputChange}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="https://github.com/username/repo"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
-                  <input
-                    type="date"
-                    name="fecha"
-                    value={formData.fecha}
-                    onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    required
-                  />
-                </div>
-
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="visible"
-                    id="visible"
-                    checked={formData.visible}
-                    onChange={handleInputChange}
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label htmlFor="visible" className="ml-2 block text-sm text-gray-700">
-                    Visible
-                  </label>
-                </div>
-
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Imagen {currentProyecto?.imagen && '(Dejar en blanco para mantener la actual)'}
-                  </label>
-                  <input
-                    type="file"
-                    name="imagen"
-                    accept="image/*"
-                    onChange={handleInputChange}
-                    className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                </div>
-              </div>
-
-              <div className="mt-6 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={handleCloseModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isSubmitting ? (
-                    <span className="flex items-center">
-                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                      </svg>
-                      {currentProyecto ? 'Actualizando...' : 'Creando...'}
-                    </span>
-                  ) : currentProyecto ? 'Actualizar Proyecto' : 'Crear Proyecto'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* Modal de Agregar/Editar */}
+      <AgregarModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        onSubmit={handleFormSubmit}
+        formData={formData}
+        onInputChange={handleInputChange}
+        isSubmitting={isSubmitting || isUploading}
+        title={currentProyecto ? 'Editar Proyecto' : 'Agregar Nuevo Proyecto'}
+      />
     </div>
   );
 };

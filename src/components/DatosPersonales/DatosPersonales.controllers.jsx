@@ -253,8 +253,21 @@ export const useDatosPersonales = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     
+    // Validar tipo de archivo
+    const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      throw new Error('Solo se permiten archivos PDF o Word');
+    }
+    
+    // Validar tamaño (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      throw new Error('El archivo es demasiado grande. Tamaño máximo permitido: 10MB');
+    }
+    
     try {
       setIsSubmitting(true);
+      
       // Mostrar mensaje de carga
       setNotification({
         message: 'Subiendo archivo CV, por favor espere...',
@@ -262,8 +275,45 @@ export const useDatosPersonales = () => {
         autoHide: false
       });
       
-      // Llamar a la función de subida
-      await handleCvChange(file);
+      // Crear FormData para enviar el archivo
+      const formData = new FormData();
+      formData.append('cv', file);
+      
+      // Usar el nombre actual del CV si existe, de lo contrario generar uno nuevo
+      const currentCvName = datos[0]?.cv || `cv-${Date.now()}.${file.name.split('.').pop()}`;
+      formData.append('cv_nombre', currentCvName);
+      
+      // Hacer la petición al servidor
+      const response = await fetch('http://localhost:5000/api/upload-cv', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      // Verificar si la respuesta es JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        const text = await response.text();
+        console.error('Respuesta inesperada del servidor:', text);
+        throw new Error('El servidor devolvió una respuesta inesperada');
+      }
+      
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Error al subir el CV');
+      }
+      
+      // Actualizar el estado con el nuevo nombre de archivo
+      setDatos(prev => [{
+        ...prev[0],
+        cv: result.cv_nombre
+      }]);
+      
+      // Actualizar el formulario
+      setFormData(prev => ({
+        ...prev,
+        cv: result.cv_nombre
+      }));
       
       // Limpiar el input para permitir seleccionar el mismo archivo de nuevo
       e.target.value = null;
@@ -274,6 +324,8 @@ export const useDatosPersonales = () => {
         type: 'success',
         autoHide: true
       });
+      
+      return result;
       
     } catch (error) {
       console.error('Error en handleCvSelect:', error);

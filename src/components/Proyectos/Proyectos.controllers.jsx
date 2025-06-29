@@ -1,8 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const API_URL = 'https://api-django-portafolio.fly.dev/api/proyectos/';
 
 export const useProyectos = () => {
+  // Estados
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -10,18 +11,19 @@ export const useProyectos = () => {
   const [currentProyecto, setCurrentProyecto] = useState(null);
   const [notification, setNotification] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Mostrar notificación
-  const showNotification = (message, type = 'success', autoHide = true) => {
+  const showNotification = useCallback((message, type = 'success', autoHide = true) => {
     setNotification({ message, type, autoHide });
     const timer = setTimeout(() => {
       setNotification(null);
     }, 5000);
     return () => clearTimeout(timer);
-  };
+  }, []);
 
   // Obtener todos los proyectos
-  const fetchProyectos = async () => {
+  const fetchProyectos = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(API_URL);
@@ -38,42 +40,28 @@ export const useProyectos = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [showNotification]);
 
-  // Función para convertir imagen a base64
-  const convertImageToBase64 = (file) => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = error => reject(error);
-    });
-  };
-
-  // Función para formatear fechas a YYYY-MM-DD
+  // Función para formatear la fecha a YYYY-MM-DD
   const formatearFecha = (fecha) => {
-    if (!fecha) return '';
+    if (!fecha) {
+      const today = new Date();
+      return today.toISOString().split('T')[0];
+    }
     
     // Si ya está en formato YYYY-MM-DD, devolverlo tal cual
     if (typeof fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(fecha)) {
       return fecha;
     }
     
-    // Si es un objeto Date, formatearlo
-    if (fecha instanceof Date && !isNaN(fecha)) {
-      const year = fecha.getFullYear();
-      const month = String(fecha.getMonth() + 1).padStart(2, '0');
-      const day = String(fecha.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-    
-    // Si es una cadena de fecha, intentar parsearla
+    // Si es un objeto Date o timestamp
     const date = new Date(fecha);
     if (isNaN(date.getTime())) {
-      console.warn('Fecha inválida:', fecha);
-      return ''; // Devolver cadena vacía en lugar de null
+      console.warn('Fecha inválida, usando fecha actual:', fecha);
+      return new Date().toISOString().split('T')[0];
     }
     
+    // Asegurarse de que la fecha esté en la zona horaria local
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -81,179 +69,256 @@ export const useProyectos = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Función para subir una imagen
-  const subirImagen = async (imagen, idProyecto) => {
-    if (!imagen) {
-      console.log('No se proporcionó ninguna imagen para subir');
-      return null;
+  // Función para obtener el nombre del archivo
+  const getFileName = (file, proyectoId = null) => {
+    // Obtener la extensión del archivo
+    const extension = file.name.split('.').pop().toLowerCase();
+    
+    // Si tenemos un ID de proyecto, usarlo en el nombre
+    if (proyectoId) {
+      return `proyecto${proyectoId}.${extension}`;
     }
     
-    // Si la imagen ya es una URL (en caso de edición), extraemos solo el nombre del archivo
-    if (typeof imagen === 'string') {
-      if (imagen.startsWith('http') || imagen.startsWith('/')) {
-        // Extraer solo el nombre del archivo de la ruta
-        const nombreArchivo = imagen.split('/').pop();
-        console.log('Imagen ya es una URL, devolviendo nombre de archivo:', nombreArchivo);
-        return nombreArchivo;
-      }
-      console.log('Imagen es un nombre de archivo, devolviendo tal cual:', imagen);
-      return imagen; // Si ya es solo un nombre de archivo, lo devolvemos tal cual
-    }
-    
-    // Si no es un archivo, no hacemos nada
-    if (!(imagen instanceof File)) {
-      console.error('El objeto de imagen no es un archivo válido:', imagen);
-      return null;
-    }
-    
-    const formData = new FormData();
-    const extension = imagen.name.substring(imagen.name.lastIndexOf('.'));
-    const nombreArchivo = `proyecto${idProyecto}${extension}`; // Mantener la extensión original
-    
-    console.log('Preparando para subir imagen:', {
-      nombreOriginal: imagen.name,
-      nombreNuevo: nombreArchivo,
-      tipo: imagen.type,
-      tamaño: imagen.size
-    });
-    
+    // Si no hay ID de proyecto, usar timestamp
+    return `proyecto_${Date.now()}.${extension}`;
+  };
+  
+  // Función para subir un archivo al servidor
+  const subirArchivo = async (file) => {
     try {
-      // Agregar la imagen al FormData con el nombre 'foto' que espera el backend
-      formData.append('foto', imagen);
+      const formData = new FormData();
+      formData.append('imagen', file);
       
-      // Agregar el nombre del archivo que queremos usar
-      formData.append('nombreArchivo', `proyecto${idProyecto}`);
-      
-      console.log('Enviando FormData al servidor:');
-      for (let pair of formData.entries()) {
-        console.log(pair[0] + ': ', pair[1]);
-      }
-      
-      const url = 'http://localhost:5000/api/upload';
-      console.log(`Enviando solicitud a: ${url}`);
-      
-      // Usamos el endpoint correcto para subir la imagen
-      const response = await fetch(url, {
+      console.log('Enviando solicitud para subir archivo...');
+      const response = await fetch('http://localhost:5000/api/proyectos/upload', {
         method: 'POST',
-        body: formData
-        // No establecer Content-Type, el navegador lo hará automáticamente con el límite correcto
+        body: formData,
+        // No establecer Content-Type, se establecerá automáticamente con el boundary
       });
       
-      console.log('Respuesta recibida, estado:', response.status);
-      
-      // Verificar si la respuesta es JSON
-      const contentType = response.headers.get('content-type');
-      let responseData;
-      
-      if (contentType && contentType.includes('application/json')) {
-        responseData = await response.json();
-      } else {
-        const text = await response.text();
-        console.error('Respuesta no es JSON:', text);
-        throw new Error('La respuesta del servidor no es un JSON válido');
-      }
-      
-      console.log('Respuesta del servidor al subir imagen:', responseData);
+      const responseData = await response.json();
+      console.log('Respuesta del servidor:', responseData);
       
       if (!response.ok) {
-        throw new Error(responseData.error || `Error al subir la imagen: ${response.statusText}`);
+        throw new Error(responseData.error || 'Error al subir la imagen');
       }
       
-      // Devolver el nombre del archivo para guardar en la base de datos
-      if (responseData.filename) {
-        console.log('Imagen subida exitosamente:', responseData.filename);
-        return responseData.filename;
-      } else if (responseData.foto_perfil) {
-        console.log('Imagen subida exitosamente (usando foto_perfil):', responseData.foto_perfil);
-        return responseData.foto_perfil.split('/').pop();
+      if (!responseData.success) {
+        throw new Error(responseData.message || 'Error en la respuesta del servidor');
       }
       
-      console.log('No se encontró filename ni foto_perfil en la respuesta, usando nombre generado:', nombreArchivo);
-      return nombreArchivo;
+      console.log('Archivo subido exitosamente:', responseData);
+      
+      // Asegurarse de que tenemos el nombre del archivo
+      if (!responseData.filename) {
+        throw new Error('No se recibió el nombre del archivo en la respuesta');
+      }
+      
+      return {
+        nombreArchivo: responseData.filename,
+        ruta: responseData.url || `/assets/Proyectos/${responseData.filename}`,
+        url: responseData.url || `/assets/Proyectos/${responseData.filename}`
+      };
+      
     } catch (error) {
-      console.error('Error al subir la imagen:', error);
-      throw error;
+      console.error('Error al subir el archivo:', error);
+      throw new Error('No se pudo subir la imagen al servidor: ' + error.message);
     }
   };
 
-  // Crear un nuevo proyecto
-  const createProyecto = async (proyectoData) => {
+  // Función para manejar la imagen
+  const subirImagen = useCallback(async (imagen) => {
+    if (!imagen) return null;
+    
+    console.log('Procesando imagen:', imagen);
+    
+    // Si la imagen ya es una URL o un nombre de archivo, devolver solo el nombre del archivo
+    if (typeof imagen === 'string') {
+      // Si es una URL completa o una ruta que ya existe
+      if (imagen.startsWith('http') || imagen.startsWith('/')) {
+        const nombreArchivo = imagen.split('/').pop();
+        console.log('Imagen existente, usando nombre de archivo:', nombreArchivo);
+        return nombreArchivo;
+      }
+    }
+
+    // Si es un archivo, devolverlo para adjuntar en la solicitud principal
+    if (imagen instanceof File) {
+      return imagen;
+    }
+
+    return null;
+  }, []);
+
+  // Función para manejar la apertura del modal de edición
+  const handleOpenModal = useCallback((proyecto = null) => {
+    setCurrentProyecto(proyecto);
+    setIsModalOpen(true);
+  }, []);
+
+  // Función para manejar el cierre del modal
+  const handleCloseModal = useCallback(() => {
+    setIsModalOpen(false);
+    setCurrentProyecto(null);
+  }, []);
+
+  // Función para manejar la edición de un proyecto
+  const handleEdit = useCallback((proyecto) => {
+    handleOpenModal(proyecto);
+  }, [handleOpenModal]);
+
+  // Función para manejar el envío del formulario
+  const handleSubmit = useCallback(async (formData, currentProyecto, onClose) => {
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      const { imagen, ...datosSinImagen } = proyectoData;
+      console.log('Datos del formulario recibidos:', formData);
+      console.log('Proyecto actual:', currentProyecto);
       
-      // Formatear la fecha usando la función formatearFecha
+      // Validar que los campos requeridos estén presentes
+      if (!formData.titulo || !formData.descripcion || !formData.tecnologias) {
+        throw new Error('Por favor completa todos los campos requeridos');
+      }
       
-      // Primero, crear el proyecto sin la imagen
-      const response = await fetch(API_URL, {
-        method: 'POST',
+      // Determinar la URL y el método para la solicitud
+      const requestUrl = currentProyecto ? `${API_URL}${currentProyecto.id}/` : API_URL;
+      const requestMethod = currentProyecto ? 'PUT' : 'POST';
+      
+      // Crear objeto con los datos del proyecto
+      console.log('Fecha recibida del formulario:', formData.fecha);
+      const fechaFormateada = formatearFecha(formData.fecha);
+      console.log('Fecha después de formatear:', fechaFormateada);
+      
+      const proyectoData = {
+        titulo: formData.titulo,
+        descripcion: formData.descripcion,
+        tecnologias: formData.tecnologias,
+        enlace_demo: formData.enlace_demo || '',
+        enlace_codigo: formData.enlace_codigo || '',
+        fecha: fechaFormateada,
+        visible: formData.visible,
+      };
+      
+      console.log('Datos que se enviarán al servidor:', JSON.stringify(proyectoData, null, 2));
+      
+      // Manejar la imagen
+      if (formData.imagen && formData.imagen instanceof File) {
+        console.log('Subiendo nueva imagen...');
+        try {
+          // Subir la imagen al servidor
+          const resultadoSubida = await subirArchivo(formData.imagen);
+          console.log('Imagen subida exitosamente:', resultadoSubida);
+          
+          // Usar el nombre de archivo devuelto por el servidor
+          if (resultadoSubida && resultadoSubida.nombreArchivo) {
+            proyectoData.imagen = resultadoSubida.nombreArchivo;
+          } else {
+            throw new Error('No se pudo obtener el nombre del archivo subido');
+          }
+        } catch (error) {
+          console.error('Error al subir la imagen:', error);
+          throw new Error('No se pudo subir la imagen: ' + error.message);
+        }
+      } else if (currentProyecto && currentProyecto.imagen) {
+        // Si es una actualización y no hay una nueva imagen, mantener la existente
+        console.log('Manteniendo imagen existente:', currentProyecto.imagen);
+        proyectoData.imagen = currentProyecto.imagen;
+      } else {
+        // Si no hay imagen, establecer un valor por defecto
+        console.log('No se proporcionó imagen, usando valor por defecto');
+        proyectoData.imagen = 'default.png';
+      }
+
+      // Enviar la solicitud con los datos del proyecto
+      console.log('Enviando solicitud a:', requestUrl);
+      console.log('Método:', requestMethod);
+      console.log('Datos enviados:', JSON.stringify(proyectoData, null, 2));
+      
+      const response = await fetch(requestUrl, {
+        method: requestMethod,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(datosSinImagen),
+        body: JSON.stringify(proyectoData),
+        credentials: 'include',
       });
+      
+      console.log('Respuesta del servidor - Estado:', response.status);
 
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || 'Error al crear el proyecto');
-      }
-      
-      console.log('Proyecto creado exitosamente:', data);
-      
-      // Si hay una imagen, subirla y actualizar el proyecto
-      if (imagen) {
-        console.log('Subiendo imagen para el proyecto:', data.id);
+        let errorMessage = 'Error al guardar el proyecto';
+        let errorDetails = {};
+        
         try {
-          const nombreImagen = await subirImagen(imagen, data.id);
-          console.log('Nombre de la imagen subida:', nombreImagen);
+          // Intentar obtener el cuerpo de la respuesta como JSON
+          const errorData = await response.json();
+          console.error('Error del servidor:', errorData);
           
-          if (nombreImagen) {
-            // Actualizar el proyecto con el nombre de la imagen
-            const updateResponse = await fetch(`${API_URL}${data.id}/`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({ 
-                ...datosSinImagen, // Incluir todos los datos originales
-                imagen: nombreImagen 
-              }),
-            });
-            
-            if (!updateResponse.ok) {
-              const errorData = await updateResponse.json().catch(() => ({}));
-              console.error('Error al actualizar el proyecto con la imagen:', errorData);
-              showNotification('El proyecto se creó, pero hubo un error al actualizar la imagen', 'warning');
-            } else {
-              const updatedProject = await updateResponse.json();
-              console.log('Proyecto actualizado con imagen:', updatedProject);
-              data.imagen = updatedProject.imagen;
-              showNotification('Proyecto creado exitosamente con imagen', 'success');
+          // Construir un mensaje de error más detallado
+          if (typeof errorData === 'object' && errorData !== null) {
+            // Si hay errores de validación de Django
+            if (errorData.errors) {
+              errorMessage = 'Errores de validación';
+              errorDetails = errorData.errors;
+            } 
+            // Si hay un mensaje de error específico
+            else if (errorData.detail || errorData.error) {
+              errorMessage = errorData.detail || errorData.error;
+            }
+            // Si hay errores de campo
+            else {
+              const fieldErrors = Object.entries(errorData)
+                .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
+                .join('; ');
+              
+              if (fieldErrors) {
+                errorMessage = `Error de validación: ${fieldErrors}`;
+                errorDetails = errorData;
+              }
             }
           }
-        } catch (error) {
-          console.error('Error al subir la imagen, pero el proyecto se creó correctamente', error);
-          showNotification('El proyecto se creó, pero hubo un error al subir la imagen', 'warning');
-          // No lanzamos el error para no fallar la creación del proyecto
+        } catch (e) {
+          console.error('Error al procesar la respuesta de error:', e);
+          // Si no se puede procesar como JSON, usar el texto de la respuesta
+          const text = await response.text();
+          errorMessage = `Error ${response.status}: ${text || response.statusText}`;
         }
-      } else {
-        showNotification('Proyecto creado exitosamente', 'success');
+        
+        const error = new Error(errorMessage);
+        error.details = errorDetails;
+        throw error;
       }
       
-      // Actualizar la lista de proyectos
+      // Si todo salió bien, obtener los datos actualizados
+      const data = await response.json();
+      console.log('Proyecto guardado exitosamente:', data);
+      
+      // Cerrar el modal y actualizar la lista de proyectos
+      if (onClose) onClose();
       await fetchProyectos();
+      
+      // Mostrar notificación de éxito
+      showNotification(
+        currentProyecto 
+          ? 'Proyecto actualizado correctamente' 
+          : 'Proyecto creado correctamente',
+        'success'
+      );
+      
       return data;
-    } catch (err) {
-      showNotification(`Error al crear el proyecto: ${err.message}`, 'error');
-      throw err;
+    } catch (error) {
+      console.error('Error al guardar el proyecto:', error);
+      showNotification(
+        error.message || 'Error al guardar el proyecto',
+        'error'
+      );
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [currentProyecto, fetchProyectos, handleCloseModal, showNotification, subirImagen, formatearFecha]);
 
-  // Eliminar un proyecto
-  const deleteProyecto = async (id) => {
+  // Función para eliminar un proyecto
+  const handleDelete = useCallback(async (id) => {
     if (!window.confirm('¿Estás seguro de que deseas eliminar este proyecto?')) {
       return;
     }
@@ -263,143 +328,26 @@ export const useProyectos = () => {
       const response = await fetch(`${API_URL}${id}/`, {
         method: 'DELETE',
       });
-
+      
       if (!response.ok) {
         throw new Error('Error al eliminar el proyecto');
-      }
-
-      showNotification('Proyecto eliminado exitosamente');
-      await fetchProyectos();
-    } catch (err) {
-      showNotification(`Error al eliminar el proyecto: ${err.message}`, 'error');
-      throw err;
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // Cargar proyectos al montar el componente
-  useEffect(() => {
-    fetchProyectos();
-  }, []);
-
-  // Manejar cierre del modal
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setCurrentProyecto(null);
-  };
-
-  // Manejar apertura del modal para editar
-  const handleEdit = (proyecto) => {
-    setCurrentProyecto(proyecto);
-    setIsModalOpen(true);
-  };
-
-  // Manejar envío del formulario (crear o actualizar)
-  const handleSubmit = async (formData) => {
-    try {
-      if (currentProyecto) {
-        // Actualizar proyecto existente
-        await updateProyecto(currentProyecto.id, formData);
-      } else {
-        // Crear nuevo proyecto
-        await createProyecto(formData);
-      }
-      handleCloseModal();
-    } catch (error) {
-      console.error('Error al guardar el proyecto:', error);
-    }
-  };
-
-  // Actualizar un proyecto
-  const updateProyecto = async (id, proyectoData) => {
-    try {
-      setIsSubmitting(true);
-      const { imagen, ...datosSinImagen } = proyectoData;
-      
-      // Formatear la fecha usando la función formatearFecha
-      const fechaFormateada = formatearFecha(datosSinImagen.fecha || new Date());
-      
-      // Preparar los datos para enviar
-      const datosAEnviar = {
-        ...datosSinImagen,
-        fecha: fechaFormateada
-      };
-      
-      console.log('Actualizando proyecto con datos:', { id, datosAEnviar });
-      
-      // 1. Primero actualizamos los datos del proyecto
-      const updateResponse = await fetch(`${API_URL}${id}/`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(datosAEnviar),
-      });
-      
-      const responseData = await updateResponse.json().catch(() => ({}));
-      
-      if (!updateResponse.ok) {
-        console.error('Error al actualizar el proyecto. Respuesta:', responseData);
-        throw new Error(responseData.message || 'Error al actualizar el proyecto');
-      }
-      
-      const proyectoActualizado = responseData;
-      console.log('Proyecto actualizado exitosamente:', proyectoActualizado);
-      
-      // 2. Si hay una imagen, la subimos y actualizamos el proyecto
-      if (imagen) {
-        try {
-          console.log('Subiendo imagen para el proyecto:', id);
-          // Subir la imagen y obtener la ruta del archivo
-          const rutaImagen = await subirImagen(imagen, id);
-          
-          if (rutaImagen) {
-            console.log('Actualizando proyecto con imagen:', rutaImagen);
-            
-            // Actualizamos solo la imagen del proyecto
-            const imageUpdateResponse = await fetch(`${API_URL}${id}/`, {
-              method: 'PATCH',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                ...datosAEnviar,
-                imagen: rutaImagen
-              }),
-            });
-            
-            if (!imageUpdateResponse.ok) {
-              const errorData = await imageUpdateResponse.json().catch(() => ({}));
-              console.error('Error al actualizar la imagen del proyecto:', errorData);
-              throw new Error('Error al actualizar la imagen del proyecto');
-            }
-            
-            const updatedWithImage = await imageUpdateResponse.json();
-            console.log('Proyecto actualizado con imagen exitosamente:', updatedWithImage);
-            
-            // Actualizamos el objeto de retorno con los datos actualizados
-            Object.assign(proyectoActualizado, updatedWithImage);
-          }
-        } catch (error) {
-          console.error('Error al subir la imagen, pero el proyecto se actualizó correctamente', error);
-          // Si falla la subida de la imagen, mostramos un mensaje pero no fallamos
-          showNotification('Proyecto actualizado, pero hubo un error al subir la imagen', 'warning');
-        }
       }
       
       // Actualizar la lista de proyectos
       await fetchProyectos();
-      
-      showNotification('Proyecto actualizado correctamente', 'success');
-      return proyectoActualizado;
-    } catch (err) {
-      showNotification(`Error al actualizar el proyecto: ${err.message}`, 'error');
-      throw err;
+      showNotification('Proyecto eliminado exitosamente', 'success');
+    } catch (error) {
+      console.error('Error al eliminar el proyecto:', error);
+      showNotification(error.message || 'Error al eliminar el proyecto', 'error');
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [fetchProyectos, showNotification]);
+
+  // Cargar proyectos al montar el componente
+  useEffect(() => {
+    fetchProyectos();
+  }, [fetchProyectos]);
 
   // Retornar las funciones y estados necesarios para el componente
   return {
@@ -410,16 +358,14 @@ export const useProyectos = () => {
     currentProyecto,
     notification,
     isSubmitting,
+    isUploading,
     fetchProyectos,
-    createProyecto,
-    updateProyecto,
-    deleteProyecto,
-    handleEdit,
+    handleOpenModal,
     handleCloseModal,
+    handleEdit,
     handleSubmit,
-    showNotification,
+    handleDelete,
     formatearFecha,
-    setCurrentProyecto,
-    setIsModalOpen
+    showNotification,
   };
 };
