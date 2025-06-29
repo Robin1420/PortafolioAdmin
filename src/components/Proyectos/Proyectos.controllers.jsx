@@ -325,12 +325,42 @@ export const useProyectos = () => {
     
     try {
       setIsSubmitting(true);
-      const response = await fetch(`${API_URL}${id}/`, {
+      
+      // Primero, obtener los datos del proyecto para saber qué archivo eliminar
+      const proyectoResponse = await fetch(`${API_URL}${id}/`);
+      if (!proyectoResponse.ok) {
+        throw new Error('No se pudo obtener la información del proyecto');
+      }
+      const proyecto = await proyectoResponse.json();
+      
+      // Si el proyecto tiene una imagen, eliminarla
+      if (proyecto.imagen && proyecto.imagen !== 'default.png') {
+        try {
+          const response = await fetch(`http://localhost:5000/api/proyectos/imagen/${proyecto.imagen}`, {
+            method: 'DELETE',
+          });
+          
+          const result = await response.json();
+          if (!response.ok) {
+            console.warn('No se pudo eliminar la imagen del proyecto:', result.error || 'Error desconocido');
+            // No lanzamos error aquí para que la eliminación del proyecto continúe
+          } else {
+            console.log('Imagen eliminada correctamente:', result);
+          }
+        } catch (error) {
+          console.error('Error al eliminar la imagen del proyecto:', error);
+          // No lanzamos error aquí para que la eliminación del proyecto continúe
+        }
+      }
+      
+      // Ahora eliminamos el proyecto de la base de datos
+      const deleteResponse = await fetch(`${API_URL}${id}/`, {
         method: 'DELETE',
+        credentials: 'include',
       });
       
-      if (!response.ok) {
-        throw new Error('Error al eliminar el proyecto');
+      if (!deleteResponse.ok) {
+        throw new Error('Error al eliminar el proyecto de la base de datos');
       }
       
       // Actualizar la lista de proyectos
@@ -339,6 +369,7 @@ export const useProyectos = () => {
     } catch (error) {
       console.error('Error al eliminar el proyecto:', error);
       showNotification(error.message || 'Error al eliminar el proyecto', 'error');
+      throw error; // Re-lanzar el error para que pueda ser manejado por el componente que llama a esta función
     } finally {
       setIsSubmitting(false);
     }
