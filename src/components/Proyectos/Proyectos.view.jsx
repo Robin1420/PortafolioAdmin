@@ -1,25 +1,59 @@
 import React, { useState, useEffect } from 'react';
 import { useProyectos } from './Proyectos.controllers';
 import AgregarModal from './Agregar.modal';
+import EditarModal from './Editar.modal';
 
 const ProyectosView = () => {
+  const [showConfirmAlert, setShowConfirmAlert] = useState(false);
+  const [projectToDelete, setProjectToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  // Función para mostrar la alerta de confirmación
+  const confirmDelete = (projectId) => {
+    setProjectToDelete(projectId);
+    setShowConfirmAlert(true);
+  };
+
+  // Función para confirmar la eliminación
+  const handleConfirmDelete = async () => {
+    if (!projectToDelete) return;
+    
+    setIsDeleting(true);
+    try {
+      await handleDelete(projectToDelete);
+      // No necesitamos mostrar notificación aquí porque handleDelete ya lo hace
+    } catch (error) {
+      console.error('Error al eliminar el proyecto:', error);
+      // No necesitamos mostrar notificación aquí porque handleDelete ya lo hace
+    } finally {
+      setIsDeleting(false);
+      setShowConfirmAlert(false);
+      setProjectToDelete(null);
+    }
+  };
+
   const {
     proyectos,
     loading,
     error,
-    isModalOpen,
+    isAddModalOpen,
+    isEditModalOpen,
     currentProyecto,
     notification,
+    setNotification,
     isSubmitting,
     isUploading,
     fetchProyectos,
-    handleOpenModal,
-    handleCloseModal,
+    handleOpenAddModal,
+    handleCloseAddModal,
+    handleOpenEditModal,
+    handleCloseEditModal,
     handleEdit,
     handleSubmit: submitHandler,
     handleDelete,
     formatearFecha,
     showNotification,
+    confirmModal,
   } = useProyectos();
 
   // Estado para el formulario
@@ -96,9 +130,13 @@ const ProyectosView = () => {
   // Manejar envío del formulario
   const handleFormSubmit = async (formData) => {
     try {
-      await submitHandler(formData, currentProyecto, handleCloseModal);
-      // No es necesario resetear el formulario aquí, ya que el controlador se encarga de cerrar el modal
-      // y el efecto se encargará de resetear el formulario cuando currentProyecto cambie a null
+      await submitHandler(formData, currentProyecto, () => {
+        if (currentProyecto) {
+          handleCloseEditModal();
+        } else {
+          handleCloseAddModal();
+        }
+      });
     } catch (error) {
       console.error('Error al guardar el proyecto:', error);
       
@@ -178,8 +216,16 @@ const ProyectosView = () => {
 
       {/* Notificación */}
       {notification && (
-        <div className={`mb-6 p-4 rounded-lg ${notification.type === 'error' ? 'bg-red-100 border-l-4 border-red-500 text-red-700' : 'bg-green-100 border-l-4 border-green-500 text-green-700'}`}>
-          <p>{notification.message}</p>
+        <div className={`fixed top-4 right-4 ${notification.type === 'error' ? 'bg-red-500' : 'bg-green-500'} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center space-x-4 transition-all duration-300 transform hover:scale-105`}>
+          <span>{notification.message}</span>
+          <button 
+            onClick={() => setNotification(null)}
+            className="text-white hover:text-gray-200 focus:outline-none"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
       )}
 
@@ -187,12 +233,25 @@ const ProyectosView = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {proyectos.map((proyecto) => (
           <div key={proyecto.id} className="group bg-white rounded-xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 relative border border-gray-100 hover:z-10 hover:scale-105">
-            {/* Delete Button - Only shows on hover */}
-            <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {/* Botones de acción - Solo se muestran al pasar el mouse */}
+            <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDelete(proyecto.id);
+                  handleOpenEditModal(proyecto);
+                }}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors p-2 rounded-lg"
+                title="Editar proyecto"
+                disabled={isSubmitting}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  confirmDelete(proyecto.id);
                 }}
                 className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors p-2 rounded-lg"
                 title="Eliminar proyecto"
@@ -244,10 +303,10 @@ const ProyectosView = () => {
                 <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                   proyecto.visible 
                     ? 'bg-green-100 text-green-800' 
-                    : 'bg-yellow-100 text-yellow-800'
+                    : 'bg-red-100 text-red-800'
                 }`}>
                   <svg className={`-ml-0.5 mr-1.5 h-2 w-2 ${
-                    proyecto.visible ? 'text-green-400' : 'text-yellow-400'
+                    proyecto.visible ? 'text-green-400' : 'text-red-400'
                   }`} fill="currentColor" viewBox="0 0 8 8">
                     <circle cx="4" cy="4" r="3" />
                   </svg>
@@ -288,12 +347,12 @@ const ProyectosView = () => {
         
         {/* Tarjeta de Agregar Proyecto - Al final de la lista */}
         <div 
-          onClick={() => handleOpenModal()}
-          className="group bg-white rounded-xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 border-dashed border-gray-300 hover:border-blue-400 flex flex-col items-center justify-center min-h-[300px] cursor-pointer hover:bg-blue-50"
+          onClick={handleOpenAddModal}
+          className="group bg-white rounded-xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 border-2 border-dashed border-gray-300 hover:border-green-400 flex flex-col items-center justify-center min-h-[300px] cursor-pointer hover:bg-green-50"
         >
           <div className="text-center p-6">
-            <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-200 transition-colors duration-200">
-              <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-200 transition-colors duration-200">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
             </div>
@@ -303,16 +362,92 @@ const ProyectosView = () => {
         </div>
       </div>
 
-      {/* Modal de Agregar/Editar */}
+      {/* Modal de Agregar */}
       <AgregarModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
+        isOpen={isAddModalOpen}
+        onClose={handleCloseAddModal}
         onSubmit={handleFormSubmit}
         formData={formData}
         onInputChange={handleInputChange}
         isSubmitting={isSubmitting || isUploading}
-        title={currentProyecto ? 'Editar Proyecto' : 'Agregar Nuevo Proyecto'}
+        title="Agregar Nuevo Proyecto"
       />
+      
+      {/* Modal de Editar */}
+      <EditarModal
+        isOpen={isEditModalOpen}
+        onClose={handleCloseEditModal}
+        onSubmit={handleFormSubmit}
+        proyecto={currentProyecto}
+        isSubmitting={isSubmitting}
+        notification={notification}
+      />
+      
+      {/* Modal de confirmación */}
+      {confirmModal}
+      
+      {/* Alerta de confirmación personalizada */}
+      {showConfirmAlert && (
+        <div className="fixed inset-0 z-50 overflow-y-auto">
+          <div className="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            {/* Fondo oscuro */}
+            <div 
+              className="fixed inset-0 bg-black bg-opacity-50 transition-opacity" 
+              aria-hidden="true"
+              onClick={() => !isDeleting && setShowConfirmAlert(false)}
+            ></div>
+            
+            {/* Contenido de la alerta */}
+            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+              <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                <div className="sm:flex sm:items-start">
+                  <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+                    <svg className="h-6 w-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+                    <h3 className="text-lg leading-6 font-medium text-gray-900">
+                      ¿Eliminar proyecto?
+                    </h3>
+                    <div className="mt-2">
+                      <p className="text-sm text-gray-500">
+                        ¿Estás seguro de que deseas eliminar este proyecto? Esta acción no se puede deshacer.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                <button
+                  type="button"
+                  className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
+                  onClick={handleConfirmDelete}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <>
+                      <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Eliminando...
+                    </>
+                  ) : 'Eliminar'}
+                </button>
+                <button
+                  type="button"
+                  className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
+                  onClick={() => setShowConfirmAlert(false)}
+                  disabled={isDeleting}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,0 +1,39 @@
+/* Estilos personalizados */
+
+/* Habilita el desplazamiento suave */
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  height: 100%;
+  overflow: auto;
+}
+
+/* Estilos para el contenedor principal */
+.main-content {
+  height: calc(100vh - 4rem); /* Ajusta según la altura de tu header */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* Para un mejor desplazamiento en dispositivos táctiles */
+}
+
+/* Estilos para la barra de desplazamiento */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}

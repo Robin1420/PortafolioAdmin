@@ -122,6 +122,7 @@ const DatosPersonalesView = () => {
             cvUrl={datos[0]?.cv ? `http://localhost:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
             onCvChange={handleCvUpload}
             isSubmitting={isSubmitting}
+            showNotification={showNotification}
           />
           <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4" role="alert">
             <p className="font-bold">Error</p>
@@ -133,7 +134,7 @@ const DatosPersonalesView = () => {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 relative">
+    <div className="container mx-auto px-4 py-8 relative h-[calc(100vh-4rem)] overflow-y-auto">
       {/* Modal de visualización de CV */}
       <CvModal 
         isOpen={showCvModal}
@@ -199,11 +200,18 @@ const DatosPersonalesView = () => {
                       <div className="w-56 h-56 lg:w-64 lg:h-64 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 hover:opacity-90 transition-all duration-300 transform hover:scale-105">
                         <img 
                           className="w-full h-full object-cover" 
-                          src={datos[0]?.foto_perfil ? `/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}` : 'https://via.placeholder.com/512'}
+                          src={datos[0]?.foto_perfil ? `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}` : ''}
                           alt="Foto de perfil"
                           onError={(e) => {
                             e.target.onerror = null;
-                            e.target.src = 'https://via.placeholder.com/512';
+                            e.target.src = '';
+                            // Mostrar un placeholder con un ícono
+                            e.target.parentElement.innerHTML = `
+                              <div class="w-full h-full flex items-center justify-center text-gray-400">
+                                <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                              </div>`;
                           }}
                         />
                       </div>
@@ -579,11 +587,25 @@ const DatosPersonalesView = () => {
         <FotoModal
           isOpen={showArchivosModal}
           onClose={closeArchivosModal}
-          fotoPerfil={datos[0]?.foto_perfil 
-            ? `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${localStorage.getItem('profile_photo_timestamp') || '0'}` 
-            : ''}
+          fotoPerfil={
+            formData?.foto_perfil 
+              ? `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}`
+              : ''
+          }
           onCambiarFoto={handleImageChange}
           isSubmitting={isSubmitting}
+          showNotification={showNotification}
+        />
+      )}
+
+      {showCvModal && (
+        <CvModal
+          isOpen={showCvModal}
+          onClose={() => setShowCvModal(false)}
+          cvUrl={datos[0]?.cv ? `http://localhost:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
+          onCvChange={handleCvUpload}
+          isSubmitting={isSubmitting}
+          showNotification={showNotification}
         />
       )}
 

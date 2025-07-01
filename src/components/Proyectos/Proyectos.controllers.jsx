@@ -7,7 +7,8 @@ export const useProyectos = () => {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [currentProyecto, setCurrentProyecto] = useState(null);
   const [notification, setNotification] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,35 +70,18 @@ export const useProyectos = () => {
     return `${year}-${month}-${day}`;
   };
 
-  // Función para obtener el nombre del archivo
-  const getFileName = (file, proyectoId = null) => {
-    // Obtener la extensión del archivo
-    const extension = file.name.split('.').pop().toLowerCase();
-    
-    // Si tenemos un ID de proyecto, usarlo en el nombre
-    if (proyectoId) {
-      return `proyecto${proyectoId}.${extension}`;
-    }
-    
-    // Si no hay ID de proyecto, usar timestamp
-    return `proyecto_${Date.now()}.${extension}`;
-  };
-  
   // Función para subir un archivo al servidor
   const subirArchivo = async (file) => {
     try {
       const formData = new FormData();
       formData.append('imagen', file);
       
-      console.log('Enviando solicitud para subir archivo...');
       const response = await fetch('http://localhost:5000/api/proyectos/upload', {
         method: 'POST',
         body: formData,
-        // No establecer Content-Type, se establecerá automáticamente con el boundary
       });
       
       const responseData = await response.json();
-      console.log('Respuesta del servidor:', responseData);
       
       if (!response.ok) {
         throw new Error(responseData.error || 'Error al subir la imagen');
@@ -107,9 +91,6 @@ export const useProyectos = () => {
         throw new Error(responseData.message || 'Error en la respuesta del servidor');
       }
       
-      console.log('Archivo subido exitosamente:', responseData);
-      
-      // Asegurarse de que tenemos el nombre del archivo
       if (!responseData.filename) {
         throw new Error('No se recibió el nombre del archivo en la respuesta');
       }
@@ -130,19 +111,12 @@ export const useProyectos = () => {
   const subirImagen = useCallback(async (imagen) => {
     if (!imagen) return null;
     
-    console.log('Procesando imagen:', imagen);
-    
-    // Si la imagen ya es una URL o un nombre de archivo, devolver solo el nombre del archivo
     if (typeof imagen === 'string') {
-      // Si es una URL completa o una ruta que ya existe
       if (imagen.startsWith('http') || imagen.startsWith('/')) {
-        const nombreArchivo = imagen.split('/').pop();
-        console.log('Imagen existente, usando nombre de archivo:', nombreArchivo);
-        return nombreArchivo;
+        return imagen.split('/').pop();
       }
     }
 
-    // Si es un archivo, devolverlo para adjuntar en la solicitud principal
     if (imagen instanceof File) {
       return imagen;
     }
@@ -150,43 +124,42 @@ export const useProyectos = () => {
     return null;
   }, []);
 
-  // Función para manejar la apertura del modal de edición
-  const handleOpenModal = useCallback((proyecto = null) => {
-    setCurrentProyecto(proyecto);
-    setIsModalOpen(true);
+  // Funciones para manejar los modales
+  const handleOpenAddModal = useCallback(() => {
+    setCurrentProyecto(null);
+    setIsAddModalOpen(true);
   }, []);
 
-  // Función para manejar el cierre del modal
-  const handleCloseModal = useCallback(() => {
-    setIsModalOpen(false);
+  const handleCloseAddModal = useCallback(() => {
+    setIsAddModalOpen(false);
+    setCurrentProyecto(null);
+  }, []);
+  
+  const handleOpenEditModal = useCallback((proyecto) => {
+    setCurrentProyecto(proyecto);
+    setIsEditModalOpen(true);
+  }, []);
+  
+  const handleCloseEditModal = useCallback(() => {
+    setIsEditModalOpen(false);
     setCurrentProyecto(null);
   }, []);
 
-  // Función para manejar la edición de un proyecto
   const handleEdit = useCallback((proyecto) => {
-    handleOpenModal(proyecto);
-  }, [handleOpenModal]);
+    handleOpenEditModal(proyecto);
+  }, [handleOpenEditModal]);
 
   // Función para manejar el envío del formulario
   const handleSubmit = useCallback(async (formData, currentProyecto, onClose) => {
     setIsSubmitting(true);
     try {
-      console.log('Datos del formulario recibidos:', formData);
-      console.log('Proyecto actual:', currentProyecto);
-      
-      // Validar que los campos requeridos estén presentes
       if (!formData.titulo || !formData.descripcion || !formData.tecnologias) {
         throw new Error('Por favor completa todos los campos requeridos');
       }
       
-      // Determinar la URL y el método para la solicitud
       const requestUrl = currentProyecto ? `${API_URL}${currentProyecto.id}/` : API_URL;
       const requestMethod = currentProyecto ? 'PUT' : 'POST';
-      
-      // Crear objeto con los datos del proyecto
-      console.log('Fecha recibida del formulario:', formData.fecha);
       const fechaFormateada = formatearFecha(formData.fecha);
-      console.log('Fecha después de formatear:', fechaFormateada);
       
       const proyectoData = {
         titulo: formData.titulo,
@@ -198,17 +171,9 @@ export const useProyectos = () => {
         visible: formData.visible,
       };
       
-      console.log('Datos que se enviarán al servidor:', JSON.stringify(proyectoData, null, 2));
-      
-      // Manejar la imagen
       if (formData.imagen && formData.imagen instanceof File) {
-        console.log('Subiendo nueva imagen...');
         try {
-          // Subir la imagen al servidor
           const resultadoSubida = await subirArchivo(formData.imagen);
-          console.log('Imagen subida exitosamente:', resultadoSubida);
-          
-          // Usar el nombre de archivo devuelto por el servidor
           if (resultadoSubida && resultadoSubida.nombreArchivo) {
             proyectoData.imagen = resultadoSubida.nombreArchivo;
           } else {
@@ -219,53 +184,32 @@ export const useProyectos = () => {
           throw new Error('No se pudo subir la imagen: ' + error.message);
         }
       } else if (currentProyecto && currentProyecto.imagen) {
-        // Si es una actualización y no hay una nueva imagen, mantener la existente
-        console.log('Manteniendo imagen existente:', currentProyecto.imagen);
         proyectoData.imagen = currentProyecto.imagen;
       } else {
-        // Si no hay imagen, establecer un valor por defecto
-        console.log('No se proporcionó imagen, usando valor por defecto');
         proyectoData.imagen = 'default.png';
       }
 
-      // Enviar la solicitud con los datos del proyecto
-      console.log('Enviando solicitud a:', requestUrl);
-      console.log('Método:', requestMethod);
-      console.log('Datos enviados:', JSON.stringify(proyectoData, null, 2));
-      
       const response = await fetch(requestUrl, {
         method: requestMethod,
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(proyectoData),
         credentials: 'include',
       });
-      
-      console.log('Respuesta del servidor - Estado:', response.status);
 
       if (!response.ok) {
         let errorMessage = 'Error al guardar el proyecto';
         let errorDetails = {};
         
         try {
-          // Intentar obtener el cuerpo de la respuesta como JSON
           const errorData = await response.json();
-          console.error('Error del servidor:', errorData);
           
-          // Construir un mensaje de error más detallado
           if (typeof errorData === 'object' && errorData !== null) {
-            // Si hay errores de validación de Django
             if (errorData.errors) {
               errorMessage = 'Errores de validación';
               errorDetails = errorData.errors;
-            } 
-            // Si hay un mensaje de error específico
-            else if (errorData.detail || errorData.error) {
+            } else if (errorData.detail || errorData.error) {
               errorMessage = errorData.detail || errorData.error;
-            }
-            // Si hay errores de campo
-            else {
+            } else {
               const fieldErrors = Object.entries(errorData)
                 .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
                 .join('; ');
@@ -277,8 +221,6 @@ export const useProyectos = () => {
             }
           }
         } catch (e) {
-          console.error('Error al procesar la respuesta de error:', e);
-          // Si no se puede procesar como JSON, usar el texto de la respuesta
           const text = await response.text();
           errorMessage = `Error ${response.status}: ${text || response.statusText}`;
         }
@@ -288,45 +230,62 @@ export const useProyectos = () => {
         throw error;
       }
       
-      // Si todo salió bien, obtener los datos actualizados
       const data = await response.json();
-      console.log('Proyecto guardado exitosamente:', data);
       
-      // Cerrar el modal y actualizar la lista de proyectos
       if (onClose) onClose();
       await fetchProyectos();
       
-      // Mostrar notificación de éxito
       showNotification(
-        currentProyecto 
-          ? 'Proyecto actualizado correctamente' 
-          : 'Proyecto creado correctamente',
+        currentProyecto ? 'Proyecto actualizado correctamente' : 'Proyecto creado correctamente',
         'success'
       );
       
       return data;
     } catch (error) {
       console.error('Error al guardar el proyecto:', error);
-      showNotification(
-        error.message || 'Error al guardar el proyecto',
-        'error'
-      );
+      showNotification(error.message || 'Error al guardar el proyecto', 'error');
       throw error;
     } finally {
       setIsSubmitting(false);
     }
-  }, [currentProyecto, fetchProyectos, handleCloseModal, showNotification, subirImagen, formatearFecha]);
+  }, [fetchProyectos, handleCloseAddModal, showNotification, subirImagen, formatearFecha]);
 
   // Función para eliminar un proyecto
   const handleDelete = useCallback(async (id) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este proyecto?')) {
-      return;
-    }
+    if (!id) return;
+    
+    // Importar SweetAlert2 al inicio de la función
+    const { default: Swal } = await import('sweetalert2');
     
     try {
+      // Mostrar alerta de confirmación con SweetAlert2
+      const { isConfirmed } = await Swal.fire({
+        title: '¿Eliminar proyecto?',
+        text: '¿Estás seguro de que deseas eliminar este proyecto? Esta acción no se puede deshacer.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true
+      });
+      
+      if (!isConfirmed) return;
+      
       setIsSubmitting(true);
       
-      // Primero, obtener los datos del proyecto para saber qué archivo eliminar
+      // Mostrar indicador de carga
+      await Swal.fire({
+        title: 'Eliminando proyecto...',
+        text: 'Por favor espera mientras se procesa la solicitud',
+        allowOutsideClick: false,
+        didOpen: () => {
+          Swal.showLoading();
+        }
+      });
+      
+      // Obtener los datos del proyecto para saber qué archivo eliminar
       const proyectoResponse = await fetch(`${API_URL}${id}/`);
       if (!proyectoResponse.ok) {
         throw new Error('No se pudo obtener la información del proyecto');
@@ -343,17 +302,15 @@ export const useProyectos = () => {
           const result = await response.json();
           if (!response.ok) {
             console.warn('No se pudo eliminar la imagen del proyecto:', result.error || 'Error desconocido');
-            // No lanzamos error aquí para que la eliminación del proyecto continúe
           } else {
             console.log('Imagen eliminada correctamente:', result);
           }
         } catch (error) {
           console.error('Error al eliminar la imagen del proyecto:', error);
-          // No lanzamos error aquí para que la eliminación del proyecto continúe
         }
       }
       
-      // Ahora eliminamos el proyecto de la base de datos
+      // Eliminar el proyecto de la base de datos
       const deleteResponse = await fetch(`${API_URL}${id}/`, {
         method: 'DELETE',
         credentials: 'include',
@@ -363,36 +320,54 @@ export const useProyectos = () => {
         throw new Error('Error al eliminar el proyecto de la base de datos');
       }
       
+      // Cerrar alerta de carga
+      await Swal.close();
+      
+      // Mostrar notificación de éxito
+      showNotification('El proyecto ha sido eliminado correctamente', 'success');
+      
       // Actualizar la lista de proyectos
       await fetchProyectos();
-      showNotification('Proyecto eliminado exitosamente', 'success');
+      
     } catch (error) {
       console.error('Error al eliminar el proyecto:', error);
-      showNotification(error.message || 'Error al eliminar el proyecto', 'error');
-      throw error; // Re-lanzar el error para que pueda ser manejado por el componente que llama a esta función
+      
+      try {
+        // Cerrar alerta de carga si está abierta
+        await Swal.close();
+        
+        // Mostrar error con notificación personalizada
+        showNotification(error.message || 'Ocurrió un error al eliminar el proyecto', 'error');
+      } catch (swalError) {
+        console.error('Error mostrando el error:', swalError);
+      }
+      
+      throw error;
     } finally {
       setIsSubmitting(false);
     }
-  }, [fetchProyectos, showNotification]);
+  }, [fetchProyectos]);
 
   // Cargar proyectos al montar el componente
   useEffect(() => {
     fetchProyectos();
   }, [fetchProyectos]);
 
-  // Retornar las funciones y estados necesarios para el componente
   return {
     proyectos,
     loading,
     error,
-    isModalOpen,
+    isAddModalOpen,
+    isEditModalOpen,
     currentProyecto,
     notification,
     isSubmitting,
     isUploading,
     fetchProyectos,
-    handleOpenModal,
-    handleCloseModal,
+    handleOpenAddModal,
+    handleCloseAddModal,
+    handleOpenEditModal,
+    handleCloseEditModal,
     handleEdit,
     handleSubmit,
     handleDelete,

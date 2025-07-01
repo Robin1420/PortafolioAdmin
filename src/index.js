@@ -1,8 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import './index.css';
-import DatosPersonalesView from './components/DatosPersonales/DatosPersonales.view.jsx';
-import ProyectosView from './components/Proyectos/Proyectos.view.jsx';
+import './App.css';
+import Dashboard from './pages/Dashboard.jsx';
 
 // Crear el root
 const root = ReactDOM.createRoot(document.getElementById('root'));
@@ -10,7 +11,11 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 // Renderizar la aplicación
 root.render(
   <React.StrictMode>
-    <DatosPersonalesView />
-    <ProyectosView />
+    <BrowserRouter>
+      <Routes>
+        <Route path="/dashboard/*" element={<Dashboard />} />
+        <Route path="*" element={<Dashboard />} />
+      </Routes>
+    </BrowserRouter>
   </React.StrictMode>
 );

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
-import { API_URL } from '../../utils/constants';
+
+const API_URL = 'https://api-django-portafolio.fly.dev/api/datos-personales/';
 
 export const useDatosPersonales = () => {
   const [datos, setDatos] = useState([]);
@@ -80,56 +81,49 @@ export const useDatosPersonales = () => {
     
     try {
       setIsSubmitting(true);
-      console.log('Archivo seleccionado:', file);
+      
+      // Validar tipo de archivo
+      const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
+      if (!validTypes.includes(file.type)) {
+        showNotification('Formato de archivo no válido. Use JPG, PNG o GIF.', 'error');
+        return;
+      }
+      
+      // Validar tamaño de archivo (máx 5MB)
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (file.size > maxSize) {
+        showNotification('La imagen es demasiado grande. El tamaño máximo es 5MB.', 'error');
+        return;
+      }
       
       // Crear FormData para enviar el archivo
       const formData = new FormData();
       formData.append('foto', file);
-      
-      console.log('Enviando imagen al servidor...');
       
       const response = await fetch('http://localhost:5000/api/upload', {
         method: 'POST',
         body: formData
       });
       
-      console.log('Respuesta recibida del servidor, estado:', response.status);
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Error del servidor:', errorText);
-        let errorMessage = `Error al subir la imagen: ${response.statusText}`;
-        
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.error || errorMessage;
-        } catch (e) {
-          // No es un JSON válido, usar el texto como está
-          if (errorText) {
-            errorMessage = errorText;
-          }
-        }
-        
-        throw new Error(errorMessage);
+        throw new Error('Error al subir la imagen');
       }
       
-      // Forzar recarga de la imagen con un nuevo timestamp
-      const timestamp = Date.now();
-      localStorage.setItem('profile_photo_timestamp', timestamp);
+      const data = await response.json();
       
-      // Actualizar el estado local con el nuevo timestamp
-      const updatedData = {
-        ...datos[0],
-        foto_perfil: `foto.png?t=${timestamp}`
-      };
+      // Actualizar la URL de la imagen con un timestamp para evitar caché
+      const timestamp = new Date().getTime();
+      const imageUrl = `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${timestamp}`;
       
-      setDatos([updatedData]);
-      
-      // Actualizar el formulario
+      // Actualizar el estado local
       setFormData(prev => ({
         ...prev,
-        foto_perfil: `foto.png?t=${timestamp}`
+        foto_perfil: imageUrl
       }));
+      
+      // Actualizar el localStorage con el timestamp
+      localStorage.setItem('profile_photo_timestamp', timestamp);
+      
       
       // Mostrar notificación de éxito
       setNotification({

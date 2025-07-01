@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 
-const CvModal = ({ isOpen, onClose, cvUrl, onCvChange, isSubmitting }) => {
+const CvModal = ({ isOpen, onClose, cvUrl, onCvChange, isSubmitting, showNotification }) => {
   const [previewUrl, setPreviewUrl] = useState('');
   const fileInputRef = useRef(null);
 
@@ -38,14 +38,14 @@ const CvModal = ({ isOpen, onClose, cvUrl, onCvChange, isSubmitting }) => {
                            fileName.endsWith('.docx');
     
     if (!validTypes.includes(file.type) && !isValidExtension) {
-      alert('Por favor, sube un archivo PDF o Word (PDF, DOC, DOCX)');
+      showNotification('Por favor, sube un archivo PDF o Word (PDF, DOC, DOCX)', 'error');
       return;
     }
 
     // Validar tamaño (máximo 10MB)
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      alert('El archivo es demasiado grande. El tamaño máximo permitido es 10MB.');
+      showNotification('El archivo es demasiado grande. El tamaño máximo permitido es 10MB.', 'error');
       return;
     }
 
@@ -67,8 +67,8 @@ const CvModal = ({ isOpen, onClose, cvUrl, onCvChange, isSubmitting }) => {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto" onClick={onClose}>
-      <div className="bg-white rounded-xl w-full max-w-4xl max-h-[80vh] my-8 overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Encabezado */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-4 sm:p-6 bg-gray-800 text-white">
           <h3 className="text-xl font-semibold mb-2 sm:mb-0">Vista Previa del CV</h3>
