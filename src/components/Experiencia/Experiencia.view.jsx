@@ -110,8 +110,71 @@ const ExperienciaView = () => {
 
   if (loading && experiencias.length === 0) {
     return (
-      <div className="flex justify-center items-center min-h-[200px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <div className="container mx-auto px-4 py-8 h-[calc(100vh-4rem)] overflow-y-auto">
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold text-gray-800">
+            Experiencia Laboral
+            <button className="ml-4 bg-gray-100 text-gray-400 p-2 rounded-lg cursor-not-allowed" disabled>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </button>
+          </h1>
+        </div>
+
+        <div className="space-y-8">
+          {[1, 2, 3].map((_, index) => (
+            <div 
+              key={index} 
+              className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4 border-blue-500 relative animate-pulse"
+            >
+              {/* Botones de acción */}
+              <div className="absolute top-4 right-4 flex space-x-2">
+                <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+                <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
+              </div>
+              
+              <div className="p-6 pt-12">
+                {/* Encabezado */}
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <div className="h-8 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-6 bg-blue-100 rounded w-1/2"></div>
+                    <div className="h-4 bg-gray-100 rounded w-24"></div>
+                  </div>
+                  <div className="h-5 w-16 bg-green-100 rounded-full"></div>
+                </div>
+                
+                {/* Descripción */}
+                <div className="mt-6 space-y-3">
+                  <div className="h-5 bg-gray-200 rounded w-1/4"></div>
+                  <ul className="space-y-2">
+                    {[1, 2, 3].map((_, i) => (
+                      <li key={i} className="flex items-start">
+                        <span className="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full mt-2 mr-2"></span>
+                        <div className="h-3 bg-gray-100 rounded w-full"></div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                
+                {/* Habilidades */}
+                <div className="mt-6 pt-4 border-t border-gray-100">
+                  <div className="flex flex-wrap gap-2">
+                    {[1, 2, 3, 4].map((_, i) => (
+                      <div key={i} className="h-6 bg-gray-100 rounded-full px-4 w-20"></div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Pie de tarjeta */}
+              <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+                <div className="h-3 bg-gray-100 rounded w-1/2"></div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }

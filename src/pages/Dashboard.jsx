@@ -1,9 +1,9 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { 
   FiHome, FiUser, FiBriefcase, FiAward, FiLink, FiCode, 
   FiUsers, FiMenu, FiX, FiBell, FiLogOut, FiSettings, 
   FiBarChart2, FiCalendar, FiClock, FiTrendingUp, FiDollarSign, 
-  FiMoreHorizontal, FiChevronLeft, FiChevronRight, FiLoader
+  FiMoreHorizontal, FiChevronLeft, FiChevronRight, FiLoader, FiLayers
 } from 'react-icons/fi';
 import { FaReact, FaNodeJs, FaDatabase } from 'react-icons/fa';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
@@ -16,6 +16,7 @@ const Proyectos = lazy(() => import('../components/Proyectos/Proyectos.view'));
 const Certificados = lazy(() => import('../components/Certificados/Certificados.view'));
 const RedesSociales = lazy(() => import('../components/RedesSociales/RedesSociales.view'));
 const Usuarios = lazy(() => import('../components/Usuarios/Usuarios.view'));
+const Skills = lazy(() => import('../components/Skills/Skills.view'));
 
 // Componente de carga
 const Loading = () => (
@@ -25,13 +26,38 @@ const Loading = () => (
 );
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [collapsed, setCollapsed] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const [notifications, setNotifications] = useState(3);
-  const navigate = useNavigate();
-  const location = useLocation();
-  const pathname = location.pathname;
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  const menuButtonRef = useRef(null);
+
+  // Cerrar menú al hacer clic fuera
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && 
+          !menuRef.current.contains(event.target) && 
+          menuButtonRef.current && 
+          !menuButtonRef.current.contains(event.target)) {
+        setMobileMenuOpen(false);
+      }
+    }
+
+    // Agregar el event listener cuando el menú está abierto
+    if (mobileMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    // Limpiar el event listener
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [mobileMenuOpen]);
 
   const [stats, setStats] = useState({
     proyectos: 12,
@@ -51,12 +77,13 @@ const Dashboard = () => {
   const menuItems = [
     { id: 'inicio', label: 'Inicio', icon: <FiHome className="w-5 h-5" />, path: '/dashboard' },
     { id: 'datos-personales', label: 'Datos Personales', icon: <FiUser className="w-5 h-5" />, path: '/dashboard/datos-personales' },
+    { id: 'skills', label: 'Skills', icon: <FiLayers className="w-5 h-5" />, path: '/dashboard/skills' },
     { id: 'experiencia', label: 'Experiencia', icon: <FiBriefcase className="w-5 h-5" />, path: '/dashboard/experiencia' },
     { id: 'proyectos', label: 'Proyectos', icon: <FiCode className="w-5 h-5" />, path: '/dashboard/proyectos' },
     { id: 'certificados', label: 'Certificados', icon: <FiAward className="w-5 h-5" />, path: '/dashboard/certificados' },
     { id: 'redes-sociales', label: 'Redes Sociales', icon: <FiLink className="w-5 h-5" />, path: '/dashboard/redes-sociales' },
-    { id: 'usuarios', label: 'Usuarios', icon: <FiUsers className="w-5 h-5" />, path: '/dashboard/usuarios' },
-  ];
+/*     { id: 'configuracion', label: 'Configuración', icon: <FiSettings className="w-5 h-5" />, path: '/dashboard/configuracion' },
+ */  ];
 
   const navigateTo = (tabId) => {
     const item = menuItems.find(item => item.id === tabId);
@@ -68,11 +95,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     // Obtener la ruta actual y actualizar el tab activo
-    const currentPath = pathname.split('/').pop() || 'inicio';
+    const currentPath = location.pathname.split('/').pop() || 'inicio';
     if (currentPath !== activeTab) {
       setActiveTab(currentPath);
     }
-  }, [pathname, activeTab]);
+  }, [location.pathname, activeTab]);
 
   const renderContent = () => (
     <Suspense fallback={<Loading />}>
@@ -80,6 +107,7 @@ const Dashboard = () => {
         <Route path="/" element={<Inicio />} />
         <Route path="/dashboard" element={<Inicio />} />
         <Route path="/datos-personales" element={<DatosPersonales />} />
+        <Route path="/skills" element={<Skills />} />
         <Route path="/experiencia" element={<Experiencia />} />
         <Route path="/proyectos" element={<Proyectos />} />
         <Route path="/certificados" element={<Certificados />} />
@@ -89,12 +117,18 @@ const Dashboard = () => {
     </Suspense>
   );
 
+  // Función para obtener el ícono activo
+  const getMobileIcon = (icon, isActive) => {
+    const iconProps = { className: `w-6 h-6 ${isActive ? 'text-blue-600' : 'text-gray-500'}` };
+    return React.cloneElement(icon, iconProps);
+  };
+
   return (
     <div className="flex h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
-      {/* Sidebar para desktop */}
+      {/* Sidebar - Oculto en móviles, visible en desktop */}
       <div 
-        className={`fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                  md:relative md:translate-x-0 ${collapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-blue-600 to-indigo-700 shadow-xl transition-all duration-300 ease-in-out z-30 hover:w-64 group`}
+        className={`hidden md:block fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
+                  md:relative md:translate-x-0 ${collapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-blue-600 to-indigo-600 shadow-xl transition-all duration-300 ease-in-out z-30 hover:w-64 group`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         style={{ '--transition-duration': '300ms' }}
@@ -162,26 +196,24 @@ const Dashboard = () => {
             </div>
           </nav>
           
-          <div className="p-4 border-t border-blue-500">
+          <div className={`p-4 border-t border-blue-500 transition-all duration-300 ease-in-out ${
+            collapsed && !isHovered ? 'opacity-0 h-0 p-0 overflow-hidden' : 'opacity-100 h-auto'
+          }`}>
             <button 
-              onClick={() => {}}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left text-white hover:bg-white/10 transition-all"
+              onClick={() => navigate('/dashboard/usuarios')}
+              className="w-full flex items-center justify-start space-x-3 px-4 py-3 rounded-xl text-left text-white hover:bg-white/10 transition-all"
             >
-              <FiSettings className="w-5 h-5 text-white" />
-              <span className={`transition-all duration-300 ease-in-out ${
-                collapsed && !isHovered ? 'opacity-0 w-0' : 'opacity-100'
-              }`}>
+              <FiSettings className="w-6 h-6 text-white flex-shrink-0" />
+              <span className="transition-all duration-300 ease-in-out">
                 Configuración
               </span>
             </button>
             <button 
               onClick={() => {}}
-              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left text-white hover:bg-white/10 transition-all"
+              className="w-full flex items-center justify-start space-x-3 px-4 py-3 rounded-xl text-left text-white hover:bg-white/10 transition-all mt-2"
             >
-              <FiLogOut className="w-5 h-5 text-white" />
-              <span className={`transition-all duration-300 ease-in-out ${
-                collapsed && !isHovered ? 'opacity-0 w-0' : 'opacity-100'
-              }`}>
+              <FiLogOut className="w-6 h-6 text-white flex-shrink-0" />
+              <span className="transition-all duration-300 ease-in-out">
                 Cerrar Sesión
               </span>
             </button>
@@ -190,45 +222,83 @@ const Dashboard = () => {
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-hidden">
-        {/* Header */}
-        <header className="bg-white shadow-sm h-16 flex items-center px-6 sticky top-0 z-20">
+      <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-y-auto pb-16 md:pb-0 scrollbar-hide relative" style={{
+        msOverflowStyle: 'none',  /* IE and Edge */
+        scrollbarWidth: 'none',   /* Firefox */
+      }}>
+        {/* Botón de menú móvil (solo visible en móviles) */}
+        <div className="md:hidden fixed top-4 right-4 z-30">
+          <button 
+            ref={menuButtonRef}
+            className="w-10 h-10 bg-blue-600 text-white rounded-md shadow-md hover:bg-blue-700 transition-colors flex items-center justify-center"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            <FiMenu className="w-5 h-5" />
+          </button>
+          
+          {/* Menú desplegable */}
+          {mobileMenuOpen && (
+            <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-blue-600 rounded-md shadow-xl py-1 border border-blue-500 border-opacity-30 animate-fadeIn">
+              <button
+                onClick={() => {
+                  navigateTo('configuracion');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-blue-500 transition-colors flex items-center"
+              >
+                <FiSettings className="mr-3 w-4 h-4 opacity-90" />
+                <span>Configuración</span>
+              </button>
+              <div className="h-px bg-blue-500 my-1"></div>
+              <button
+                onClick={() => {
+                  // Aquí iría la lógica de cierre de sesión
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full text-left px-4 py-2.5 text-sm text-red-200 hover:bg-red-600 hover:bg-opacity-50 transition-colors flex items-center"
+              >
+                <FiLogOut className="mr-3 w-4 h-4 opacity-90" />
+                <span>Cerrar Sesión</span>
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Estilos para la animación */}
+        <style jsx global>{`
+          @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+          }
+          .animate-fadeIn {
+            animation: fadeIn 0.2s ease-out forwards;
+          }
+        `}</style>
+        {/* Header - Solo visible en desktop */}
+        <header className="hidden md:flex bg-white shadow-sm h-16 items-center px-6 sticky top-0 z-20">
           <div className="flex items-center">
             <button 
               onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="mr-4 text-gray-600 hover:text-gray-900 md:hidden"
+              className="mr-4 text-gray-600 hover:text-gray-900"
             >
               <FiMenu className="w-6 h-6" />
             </button>
-            <div className="hidden md:flex items-center text-sm text-gray-500">
-              <span>Inicio</span>
-              <span className="mx-2">/</span>
-              <span className="text-gray-700 font-medium">
-                {menuItems.find(item => item.id === activeTab)?.label || 'Panel de Control'}
-              </span>
-            </div>
+            <h1 className="text-xl font-semibold text-gray-800">
+              {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
+            </h1>
           </div>
-          
           <div className="ml-auto flex items-center space-x-4">
             <div className="relative">
-              <button className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 relative">
+              <button className="p-2 text-gray-600 hover:text-gray-900 relative">
                 <FiBell className="w-5 h-5" />
                 {notifications > 0 && (
-                  <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
-                    {notifications}
-                  </span>
+                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
                 )}
               </button>
             </div>
-            
-            <div className="hidden md:block w-px h-6 bg-gray-200 mx-2"></div>
-            
-            <div className="flex items-center space-x-3 group cursor-pointer">
-              <div className="hidden md:block text-right">
-                <p className="text-sm font-medium text-gray-700">Administrador</p>
-                <p className="text-xs text-gray-500">Admin</p>
-              </div>
-              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
+            <div className="h-8 w-px bg-gray-200"></div>
+            <div className="flex items-center">
+              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
                 A
               </div>
             </div>
@@ -241,10 +311,117 @@ const Dashboard = () => {
         </header>
 
         {/* Contenido */}
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto" style={{
+          msOverflowStyle: 'none',  /* IE and Edge */
+          scrollbarWidth: 'none',   /* Firefox */
+        }}>
           <div className="p-6 max-w-7xl mx-auto w-full">
             {renderContent()}
           </div>
+        </div>
+        
+        {/* Estilos para ocultar scrollbar en WebKit (Chrome, Safari, etc) */}
+        <style jsx global>{`
+          ::-webkit-scrollbar {
+            display: none;  /* Chrome, Safari, Opera */
+            width: 0;  /* Remove scrollbar space */
+            background: transparent;  /* Optional: just make scrollbar invisible */
+          }
+          /* Optional: show position indicator in red */
+          ::-webkit-scrollbar-thumb {
+            background: transparent;
+          }
+        `}</style>
+      </div>
+
+      {/* Barra de navegación móvil */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-blue-600 shadow-lg z-40">
+        <div className="flex justify-between items-center h-16 px-1">
+          {/* Botón de Datos Personales */}
+          <button
+            onClick={() => navigateTo('datos-personales')}
+            className={`flex flex-col items-center justify-center w-14 h-full ${
+              activeTab === 'datos-personales' ? 'text-white' : 'text-blue-100 hover:text-white'
+            }`}
+          >
+            <FiUser className={`w-5 h-5 ${activeTab === 'datos-personales' ? 'text-white' : 'text-blue-200'}`} />
+            <span className="text-[10px] mt-0.5">Datos</span>
+          </button>
+          
+          {/* Botón de Proyectos */}
+          <button
+            onClick={() => navigateTo('proyectos')}
+            className={`flex flex-col items-center justify-center w-14 h-full ${
+              activeTab === 'proyectos' ? 'text-white' : 'text-blue-100 hover:text-white'
+            }`}
+          >
+            <FiCode className={`w-5 h-5 ${activeTab === 'proyectos' ? 'text-white' : 'text-blue-200'}`} />
+            <span className="text-[10px] mt-0.5">Proy</span>
+          </button>
+          
+          {/* Botón de Experiencia */}
+          <button
+            onClick={() => navigateTo('experiencia')}
+            className={`flex flex-col items-center justify-center w-14 h-full ${
+              activeTab === 'experiencia' ? 'text-white' : 'text-blue-100 hover:text-white'
+            }`}
+          >
+            <FiBriefcase className={`w-5 h-5 ${activeTab === 'experiencia' ? 'text-white' : 'text-blue-200'}`} />
+            <span className="text-[10px] mt-0.5">Exp</span>
+          </button>
+          
+          {/* Botón de Inicio (Foto de perfil) */}
+          <button
+            onClick={() => navigateTo('inicio')}
+            className="flex flex-col items-center justify-center -mt-8"
+          >
+            <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white shadow-lg">
+              <img 
+                src="/assets/DatosPersonales/foto/foto.png" 
+                alt="Inicio" 
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/150';
+                }}
+              />
+            </div>
+          </button>
+          
+          {/* Botón de Skills */}
+          <button
+            onClick={() => navigateTo('skills')}
+            className={`flex flex-col items-center justify-center w-14 h-full ${
+              activeTab === 'skills' ? 'text-white' : 'text-blue-100 hover:text-white'
+            }`}
+          >
+            <FiLayers className={`w-5 h-5 ${activeTab === 'skills' ? 'text-white' : 'text-blue-200'}`} />
+            <span className="text-[10px] mt-0.5">Skills</span>
+          </button>
+          
+          {/* Botón de Certificados */}
+          <button
+            onClick={() => navigateTo('certificados')}
+            className={`flex flex-col items-center justify-center w-14 h-full ${
+              activeTab === 'certificados' ? 'text-white' : 'text-blue-100 hover:text-white'
+            }`}
+          >
+            <FiAward className={`w-5 h-5 ${activeTab === 'certificados' ? 'text-white' : 'text-blue-200'}`} />
+            <span className="text-[10px] mt-0.5">Certs</span>
+          </button>
+          
+          {/* Botón de Redes Sociales */}
+          <button
+            onClick={() => navigateTo('redes-sociales')}
+            className={`flex flex-col items-center justify-center w-14 h-full ${
+              activeTab === 'redes-sociales' ? 'text-white' : 'text-blue-100 hover:text-white'
+            }`}
+          >
+            <FiLink className={`w-5 h-5 ${activeTab === 'redes-sociales' ? 'text-white' : 'text-blue-200'}`} />
+            <span className="text-[10px] mt-0.5">Redes</span>
+          </button>
+          
+          
         </div>
       </div>
     </div>
