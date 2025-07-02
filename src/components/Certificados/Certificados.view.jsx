@@ -107,7 +107,7 @@ const Certificados = () => {
                     e.stopPropagation();
                     openEditModal(certificado);
                   }}
-                  className="p-2 bg-white rounded-full shadow-md hover:bg-blue-50 text-blue-600 hover:text-blue-700 transition-colors"
+                  className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors p-2 rounded-lg"
                   title="Editar"
                 >
                   <FiEdit2 size={16} />
@@ -117,7 +117,7 @@ const Certificados = () => {
                     e.stopPropagation();
                     handleDeleteClick(certificado);
                   }}
-                  className="p-2 bg-white rounded-full shadow-md hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
+                  className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors p-2 rounded-lg"
                   title="Eliminar"
                 >
                   <FiTrash2 size={16} />
