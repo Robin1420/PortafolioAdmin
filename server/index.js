@@ -124,6 +124,40 @@ const uploadProyecto = multer({
   }
 }).single('imagen');
 
+// Configuración de multer para certificados
+const certificadosStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, '../public/assets/Certificados');
+    // Crear directorio si no existe
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `certificado-${uniqueSuffix}${ext}`);
+  }
+});
+
+// Middleware para subir imágenes de certificados
+const uploadCertificado = multer({
+  storage: certificadosStorage,
+  fileFilter: (req, file, cb) => {
+    const filetypes = /jpeg|jpg|png|gif/;
+    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = filetypes.test(file.mimetype);
+
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten imágenes (JPEG, JPG, PNG, GIF)'));
+    }
+  },
+  limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+}).single('imagen');
+
 // Configuración de multer para fotos de perfil
 const fotoPerfilStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -175,6 +209,41 @@ const uploadCv = multer({
   }
 });
 
+
+// Ruta para subir imagen de certificado
+app.post('/api/certificados/upload', (req, res) => {
+  uploadCertificado(req, res, (err) => {
+    if (err) {
+      console.error('Error al subir la imagen del certificado:', err);
+      return res.status(400).json({
+        success: false,
+        message: err.message || 'Error al subir la imagen del certificado',
+        error: process.env.NODE_ENV === 'development' ? err : {}
+      });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No se seleccionó ningún archivo o el archivo no es válido'
+      });
+    }
+
+    // Construir la URL de la imagen
+    const imageUrl = `/assets/Certificados/${req.file.filename}`;
+
+    res.status(200).json({
+      success: true,
+      message: 'Imagen del certificado subida correctamente',
+      file: {
+        filename: req.file.filename,
+        originalname: req.file.originalname,
+        path: imageUrl,
+        size: req.file.size
+      }
+    });
+  });
+});
 
 // Ruta para subir imagen de proyecto
 app.post('/api/proyectos/upload', (req, res) => {
@@ -275,6 +344,42 @@ const deleteFile = (filename, directory) => {
     });
   });
 };
+
+// Ruta para eliminar una imagen de certificado
+app.delete('/api/certificados/imagen/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    
+    if (!filename) {
+      return res.status(400).json({
+        success: false,
+        message: 'Se requiere el nombre del archivo'
+      });
+    }
+    
+    const directory = path.join(__dirname, '../public/assets/Certificados');
+    const deleted = await deleteFile(filename, directory);
+    
+    if (!deleted) {
+      console.log(`El archivo ${filename} no existe en el directorio de certificados`);
+      // No devolvemos error si el archivo no existe, ya que puede haber sido eliminado manualmente
+    }
+    
+    res.status(200).json({
+      success: true,
+      message: 'Imagen del certificado eliminada correctamente',
+      filename
+    });
+    
+  } catch (error) {
+    console.error('Error al eliminar la imagen del certificado:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al eliminar la imagen del certificado',
+      error: process.env.NODE_ENV === 'development' ? error.message : {}
+    });
+  }
+});
 
 // Ruta para eliminar una imagen de proyecto
 app.delete('/api/proyectos/imagen/:filename', async (req, res) => {
