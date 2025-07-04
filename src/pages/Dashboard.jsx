@@ -274,27 +274,7 @@ const Dashboard = () => {
               {menuItems.find(item => item.id === activeTab)?.label || 'Dashboard'}
             </h1>
           </div>
-          <div className="ml-auto flex items-center space-x-4">
-            <div className="relative">
-              <button className="p-2 text-gray-600 hover:text-gray-900 relative">
-                <FiBell className="w-5 h-5" />
-                {notifications > 0 && (
-                  <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full"></span>
-                )}
-              </button>
-            </div>
-            <div className="h-8 w-px bg-gray-200"></div>
-            <div className="flex items-center">
-              <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-semibold">
-                A
-              </div>
-            </div>
-            
-            <button className="hidden md:flex items-center space-x-1 text-sm text-gray-600 hover:text-gray-900 px-3 py-1.5 rounded-lg hover:bg-gray-100">
-              <FiLogOut className="w-4 h-4" />
-              <span>Salir</span>
-            </button>
-          </div>
+         
         </header>
 
         {/* Contenido */}

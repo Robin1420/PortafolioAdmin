@@ -1,5 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
+import * as FiIcons from 'react-icons/fi';
 
 const Inicio = () => {
   // Efecto para animaciones al cargar
@@ -47,8 +48,10 @@ const Inicio = () => {
   };
 
   return (
-    <div className="h-full w-full bg-gradient-to-br from-blue-50 via-white to-blue-100 overflow-hidden">
-      <div className="h-full w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8">
+    <div className="relative w-full min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100 overflow-hidden">
+      
+      <div className="relative z-10 w-full min-h-screen flex items-center justify-center">
+      <div className="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <motion.div 
           className="h-full flex flex-col lg:flex-row items-center justify-center lg:justify-between gap-8 lg:gap-12"
           variants={container}
@@ -61,12 +64,11 @@ const Inicio = () => {
             className="w-full lg:w-1/2 h-full flex items-center justify-center overflow-visible"
             variants={image}
           >
-            <div className="relative group h-full flex items-center justify-center py-8 lg:py-12">
-              <div className="absolute -inset-8 bg-gradient-to-r from-blue-200 to-blue-300 rounded-2xl opacity-0 group-hover:opacity-70 blur-xl transition-all duration-500 group-hover:duration-200"></div>
+            <div className="relative h-full flex items-center justify-center py-8 lg:py-12">
               <img 
                 src="/assets/recursos/Img.png" 
                 alt="Panel de Control"
-                className="relative w-full h-auto max-h-[70vh] lg:max-h-[80vh] object-contain transform transition-all duration-500 group-hover:scale-[1.02]"
+                className="w-full h-auto max-h-[70vh] lg:max-h-[80vh] object-contain"
                 style={{ maxWidth: '100%' }}
                 onError={(e) => {
                   e.target.onerror = null;
@@ -91,7 +93,7 @@ const Inicio = () => {
               className="text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 mb-6 leading-tight"
               variants={item}
             >
-              Controla tu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Marca Personal</span>
+              Administra tu <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-cyan-500">Portafolio Personal</span>
             </motion.h1>
             
             <motion.p 
@@ -105,41 +107,63 @@ const Inicio = () => {
               className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start"
               variants={item}
             >
-              <button 
-                className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-8 py-4 rounded-xl font-semibold hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1"
-              >
-                <span className="relative z-10">Comenzar Ahora</span>
-                <span className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
-              </button>
-              
-              <button className="px-6 py-4 text-gray-700 font-medium hover:text-blue-600 transition-colors flex items-center justify-center gap-2">
-                <span>Ver Demostración</span>
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </button>
             </motion.div>
             
             <motion.div 
-              className="mt-12 pt-6 border-t border-gray-200 flex flex-wrap justify-center lg:justify-start gap-6"
+              className="mt-12 pt-6 border-t border-gray-200 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
               variants={item}
             >
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">100%</div>
-                <div className="text-sm text-gray-500">Personalizable</div>
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-blue-600 mb-3">
+                  <FiIcons.FiUser className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Datos Personales</h3>
+                <p className="text-gray-600 text-sm">Administra tu información personal, experiencia y habilidades profesionales en un solo lugar.</p>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">24/7</div>
-                <div className="text-sm text-gray-500">Disponible</div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-blue-600 mb-3">
+                  <FiIcons.FiBriefcase className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Experiencia Laboral</h3>
+                <p className="text-gray-600 text-sm">Gestiona tu historial profesional, logros y responsabilidades laborales.</p>
               </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-gray-900">Fácil</div>
-                <div className="text-sm text-gray-500">De usar</div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-blue-600 mb-3">
+                  <FiIcons.FiCode className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Proyectos</h3>
+                <p className="text-gray-600 text-sm">Muestra tus trabajos más importantes con imágenes, descripciones y tecnologías utilizadas.</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-blue-600 mb-3">
+                  <FiIcons.FiAward className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Certificaciones</h3>
+                <p className="text-gray-600 text-sm">Destaca tus logros educativos y certificaciones profesionales.</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-blue-600 mb-3">
+                  <FiIcons.FiLink className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Redes Sociales</h3>
+                <p className="text-gray-600 text-sm">Conecta tus perfiles profesionales y redes sociales en un solo lugar.</p>
+              </div>
+
+              <div className="bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                <div className="text-blue-600 mb-3">
+                  <FiIcons.FiUsers className="w-8 h-8" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Usuarios</h3>
+                <p className="text-gray-600 text-sm">Administra los usuarios que tienen acceso al panel de control.</p>
               </div>
             </motion.div>
           </motion.div>
         </motion.div>
+      </div>
       </div>
     </div>
   );
