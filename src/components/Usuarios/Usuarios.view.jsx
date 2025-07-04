@@ -82,43 +82,131 @@ const PasswordModal = ({ onClose, onVerify, verifyPassword }) => {
   );
 };
 
-const UpdatePasswordModal = ({ onClose, onUpdate }) => {
+const UpdatePasswordModal = ({ onClose, onUpdate, verifyPassword }) => {
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verified, setVerified] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleVerifyCurrentPassword = async (e) => {
+    e.preventDefault();
+    if (!currentPassword) {
+      setError('Por favor ingrese su contraseña actual');
+      return;
+    }
+
+    setIsVerifying(true);
+    setError('');
+
+    try {
+      const isValid = await verifyPassword(currentPassword);
+      if (isValid) {
+        setVerified(true);
+        setError('');
+      } else {
+        setError('La contraseña actual es incorrecta');
+      }
+    } catch (error) {
+      console.error('Error al verificar contraseña:', error);
+      setError('Ocurrió un error al verificar la contraseña');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleSubmitNewPassword = (e) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
-      setError('Las contraseñas no coinciden');
+      setError('Las nuevas contraseñas no coinciden');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     onUpdate(newPassword);
   };
 
+  if (!verified) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+          <h2 className="text-xl font-bold mb-4">Verificar Contraseña Actual</h2>
+          <p className="mb-4">Por su seguridad, debe verificar su contraseña actual para continuar.</p>
+          <form onSubmit={handleVerifyCurrentPassword}>
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2">Contraseña Actual</label>
+              <input
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Ingrese su contraseña actual"
+                disabled={isVerifying}
+                autoFocus
+              />
+              {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+            </div>
+            <div className="flex justify-end space-x-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border rounded"
+                disabled={isVerifying}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                disabled={isVerifying || !currentPassword}
+              >
+                {isVerifying ? 'Verificando...' : 'Continuar'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Actualizar Contraseña</h2>
-        <form onSubmit={handleSubmit}>
+        <h2 className="text-xl font-bold mb-4">Establecer Nueva Contraseña</h2>
+        <p className="mb-4">Ingrese y confirme su nueva contraseña.</p>
+        <form onSubmit={handleSubmitNewPassword}>
           <div className="mb-4">
             <label className="block text-gray-700 mb-2">Nueva Contraseña</label>
             <input
               type="password"
               value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
+              onChange={(e) => {
+                setNewPassword(e.target.value);
+                if (error) setError('');
+              }}
               className="w-full p-2 border rounded"
+              placeholder="Ingrese la nueva contraseña"
               required
+              minLength={6}
+              autoFocus
             />
           </div>
           <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Confirmar Contraseña</label>
+            <label className="block text-gray-700 mb-2">Confirmar Nueva Contraseña</label>
             <input
               type="password"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
+              onChange={(e) => {
+                setConfirmPassword(e.target.value);
+                if (error) setError('');
+              }}
               className="w-full p-2 border rounded"
+              placeholder="Confirme la nueva contraseña"
               required
+              minLength={6}
             />
             {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
           </div>
@@ -133,8 +221,9 @@ const UpdatePasswordModal = ({ onClose, onUpdate }) => {
             <button
               type="submit"
               className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              disabled={!newPassword || !confirmPassword || newPassword !== confirmPassword}
             >
-              Actualizar
+              Actualizar Contraseña
             </button>
           </div>
         </form>
@@ -194,10 +283,26 @@ const Usuarios = () => {
   };
 
   const handleUpdatePassword = async (newPassword) => {
-    const success = await updatePassword(newPassword);
-    if (success) {
-      setShowUpdatePasswordModal(false);
+    try {
+      const success = await updatePassword(newPassword);
+      if (success) {
+        setShowUpdatePasswordModal(false);
+        setNotification({
+          type: 'success',
+          message: 'Contraseña actualizada exitosamente'
+        });
+      }
+    } catch (error) {
+      console.error('Error al actualizar la contraseña:', error);
+      setNotification({
+        type: 'error',
+        message: error.message || 'Error al actualizar la contraseña'
+      });
     }
+  };
+
+  const handleChangePasswordClick = () => {
+    setShowUpdatePasswordModal(true);
   };
 
   if (loading) {
@@ -275,12 +380,14 @@ const Usuarios = () => {
 
         <div className="border-t pt-4">
           <h3 className="text-lg font-medium mb-4">Opciones de Seguridad</h3>
-          <button
-            onClick={() => setShowPasswordModal(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
-          >
-            Cambiar Contraseña
-          </button>
+          <div className="space-y-4">
+            <button
+              onClick={handleChangePasswordClick}
+              className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            >
+              Cambiar Contraseña
+            </button>
+          </div>
         </div>
       </div>
 
@@ -299,6 +406,7 @@ const Usuarios = () => {
         <UpdatePasswordModal
           onClose={() => setShowUpdatePasswordModal(false)}
           onUpdate={handleUpdatePassword}
+          verifyPassword={verifyPassword}
         />
       )}
       
