@@ -9,7 +9,7 @@ import { FaReact, FaNodeJs, FaDatabase } from 'react-icons/fa';
 import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 
 // Carga perezosa de componentes
-const Inicio = lazy(() => import('./Inicio'));
+const Inicio = lazy(() => import('./Inicio').then(module => ({ default: module.default })));
 const DatosPersonales = lazy(() => import('../components/DatosPersonales/DatosPersonales.view'));
 const Experiencia = lazy(() => import('../components/Experiencia/Experiencia.view'));
 const Proyectos = lazy(() => import('../components/Proyectos/Proyectos.view'));
@@ -58,19 +58,6 @@ const Dashboard = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [mobileMenuOpen]);
-
-  const [stats, setStats] = useState({
-    proyectos: 12,
-    visitas: 1245,
-    clientes: 42,
-    ingresos: 8750
-  });
-
-  const [recentActivity, setRecentActivity] = useState([
-    { id: 1, user: 'Juan Pérez', action: 'actualizó su perfil', time: 'Hace 5 min', icon: 'user', color: 'bg-blue-100 text-blue-600' },
-    { id: 2, user: 'María García', action: 'subió un nuevo proyecto', time: 'Hace 1 hora', icon: 'code', color: 'bg-green-100 text-green-600' },
-    { id: 3, user: 'Carlos López', action: 'comentó en tu publicación', time: 'Hace 3 horas', icon: 'briefcase', color: 'bg-yellow-100 text-yellow-600' },
-  ]);
   
   const [activeTab, setActiveTab] = useState('inicio');
 
@@ -124,11 +111,11 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 text-gray-800 font-sans overflow-hidden">
+    <div className="flex h-screen bg-white text-gray-800 font-sans overflow-hidden">
       {/* Sidebar - Oculto en móviles, visible en desktop */}
       <div 
         className={`hidden md:block fixed inset-y-0 left-0 transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
-                  md:relative md:translate-x-0 ${collapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-blue-600 to-indigo-600 shadow-xl transition-all duration-300 ease-in-out z-30 hover:w-64 group`}
+                  md:relative md:translate-x-0 ${collapsed ? 'w-20' : 'w-64'} bg-gradient-to-b from-blue-600 to-blue-600 shadow-xl transition-all duration-300 ease-in-out z-30 hover:w-64 group`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         style={{ '--transition-duration': '300ms' }}
@@ -168,8 +155,8 @@ const Dashboard = () => {
             </button>
           </div>
         </div>
-        <div className="h-[calc(100%-5rem)] flex flex-col overflow-hidden">
-          <nav className={`p-4 flex-1 ${collapsed ? 'overflow-hidden' : 'overflow-y-auto pr-1 -mr-1 scrollbar-hide'}`}>
+        <div className="h-[calc(100%-5rem)] flex flex-col overflow-hidden bg-blue-600">
+          <nav className={`p-4 flex-1 ${collapsed ? 'overflow-hidden' : 'overflow-y-auto pr-1 -mr-1 scrollbar-hide'} bg-blue-600`}>
             <div className="space-y-2">
               {menuItems.map((item) => (
                 <div key={item.id} className="relative group">
@@ -177,8 +164,8 @@ const Dashboard = () => {
                     onClick={() => navigateTo(item.id)}
                     className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-left transition-all ${
                       activeTab === item.id
-                        ? 'bg-white/20 text-white'
-                        : 'text-white hover:bg-white/10'
+                        ? 'bg-blue-700 text-white'
+                        : 'text-white hover:bg-blue-700'
                     } ${collapsed && !isHovered ? 'justify-center' : ''}`}
                     title={collapsed ? item.label : ''}
                   >
@@ -203,9 +190,9 @@ const Dashboard = () => {
               onClick={() => navigate('/dashboard/usuarios')}
               className="w-full flex items-center justify-start space-x-3 px-4 py-3 rounded-xl text-left text-white hover:bg-white/10 transition-all"
             >
-              <FiSettings className="w-6 h-6 text-white flex-shrink-0" />
+              <FiUser className="w-6 h-6 text-white flex-shrink-0" />
               <span className="transition-all duration-300 ease-in-out">
-                Configuración
+                Cuenta
               </span>
             </button>
             <button 
@@ -222,7 +209,7 @@ const Dashboard = () => {
       </div>
 
       {/* Contenido principal */}
-      <div className="flex-1 flex flex-col bg-gray-50 h-full overflow-y-auto pb-16 md:pb-0 scrollbar-hide relative" style={{
+      <div className="flex-1 flex flex-col bg-white h-full overflow-y-auto pb-16 md:pb-0 scrollbar-hide relative" style={{
         msOverflowStyle: 'none',  /* IE and Edge */
         scrollbarWidth: 'none',   /* Firefox */
       }}>
@@ -241,13 +228,13 @@ const Dashboard = () => {
             <div ref={menuRef} className="absolute right-0 mt-2 w-48 bg-blue-600 rounded-md shadow-xl py-1 border border-blue-500 border-opacity-30 animate-fadeIn">
               <button
                 onClick={() => {
-                  navigateTo('configuracion');
+                  navigate('/dashboard/usuarios');
                   setMobileMenuOpen(false);
                 }}
                 className="w-full text-left px-4 py-2.5 text-sm text-white hover:bg-blue-500 transition-colors flex items-center"
               >
-                <FiSettings className="mr-3 w-4 h-4 opacity-90" />
-                <span>Configuración</span>
+                <FiUser className="mr-3 w-4 h-4 opacity-90" />
+                <span>Cuenta</span>
               </button>
               <div className="h-px bg-blue-500 my-1"></div>
               <button
@@ -311,11 +298,11 @@ const Dashboard = () => {
         </header>
 
         {/* Contenido */}
-        <div className="flex-1 overflow-y-auto" style={{
+        <div className="flex-1 overflow-y-auto bg-white w-full" style={{
           msOverflowStyle: 'none',  /* IE and Edge */
           scrollbarWidth: 'none',   /* Firefox */
         }}>
-          <div className="p-6 max-w-7xl mx-auto w-full">
+          <div className="w-full h-full">
             {renderContent()}
           </div>
         </div>

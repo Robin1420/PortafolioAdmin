@@ -33,47 +33,77 @@ const PasswordModal = ({ onClose, onVerify, verifyPassword }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Verificar Identidad</h2>
-        <p className="mb-4">Por favor ingrese su contraseña para continuar.</p>
-        <form onSubmit={handleSubmit}>
-          <div className="w-full mb-4">
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                if (error) setError('');
-              }}
-              className={`w-full p-2 border rounded ${
-                error ? 'border-red-500' : ''
-              }`}
-              placeholder="Ingrese su contraseña actual"
-              autoComplete="current-password"
-              disabled={isVerifying}
-            />
-            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
+        <div className="flex items-center mb-4">
+          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
           </div>
-          <div className="flex justify-end space-x-2">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Verificar Identidad</h2>
+        </div>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">Por su seguridad, ingrese su contraseña actual para continuar.</p>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña Actual</label>
+            <div className="relative">
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (error) setError('');
+                }}
+                className={`w-full px-4 py-2.5 rounded-lg border ${
+                  error 
+                    ? 'border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900' 
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900'
+                } focus:outline-none transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                disabled={isVerifying}
+                autoFocus
+              />
+              {error && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+          </div>
+          
+          <div className="flex justify-end space-x-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded"
+              className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
               disabled={isVerifying}
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={isVerifying}
-              className={`px-4 py-2 rounded ${
-                isVerifying 
-                  ? 'bg-gray-400 cursor-not-allowed' 
-                  : 'bg-blue-600 hover:bg-blue-700 text-white'
+              disabled={isVerifying || !password}
+              className={`px-5 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 ${
+                isVerifying || !password
+                  ? 'bg-blue-400 dark:bg-blue-500 cursor-not-allowed text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-600 dark:focus:ring-offset-gray-800 transform hover:scale-[1.02] active:scale-[0.98] transition-transform'
               }`}
             >
-              {isVerifying ? 'Verificando...' : 'Verificar'}
+              {isVerifying ? (
+                <span className="flex items-center">
+                  <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Verificando...
+                </span>
+              ) : 'Verificar'}
             </button>
           </div>
         </form>
@@ -131,39 +161,77 @@ const UpdatePasswordModal = ({ onClose, onUpdate, verifyPassword }) => {
 
   if (!verified) {
     return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-          <h2 className="text-xl font-bold mb-4">Verificar Contraseña Actual</h2>
-          <p className="mb-4">Por su seguridad, debe verificar su contraseña actual para continuar.</p>
-          <form onSubmit={handleVerifyCurrentPassword}>
-            <div className="mb-4">
-              <label className="block text-gray-700 mb-2">Contraseña Actual</label>
-              <input
-                type="password"
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                className="w-full p-2 border rounded"
-                placeholder="Ingrese su contraseña actual"
-                disabled={isVerifying}
-                autoFocus
-              />
-              {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300">
+        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
+          <div className="flex items-center mb-4">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
             </div>
-            <div className="flex justify-end space-x-2">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white">Verificar Contraseña</h2>
+          </div>
+          <p className="text-gray-600 dark:text-gray-300 mb-6">Por su seguridad, debe verificar su contraseña actual para continuar.</p>
+          
+          <form onSubmit={handleVerifyCurrentPassword} className="space-y-4">
+            <div className="space-y-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contraseña Actual</label>
+              <div className="relative">
+                <input
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    if (error) setError('');
+                  }}
+                  className={`w-full px-4 py-2.5 rounded-lg border ${
+                    error 
+                      ? 'border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900' 
+                      : 'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900'
+                  } focus:outline-none transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                  disabled={isVerifying}
+                  autoFocus
+                />
+                {error && (
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+              {error && <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>}
+            </div>
+            
+            <div className="flex justify-end space-x-3 pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 border rounded"
+                className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
                 disabled={isVerifying}
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                 disabled={isVerifying || !currentPassword}
+                className={`px-5 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 ${
+                  isVerifying || !currentPassword
+                    ? 'bg-blue-400 dark:bg-blue-500 cursor-not-allowed text-white'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-600 dark:focus:ring-offset-gray-800 transform hover:scale-[1.02] active:scale-[0.98] transition-transform'
+                }`}
               >
-                {isVerifying ? 'Verificando...' : 'Continuar'}
+                {isVerifying ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Verificando...
+                  </span>
+                ) : 'Continuar'}
               </button>
             </div>
           </form>
@@ -173,55 +241,124 @@ const UpdatePasswordModal = ({ onClose, onUpdate, verifyPassword }) => {
   }
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
-        <h2 className="text-xl font-bold mb-4">Establecer Nueva Contraseña</h2>
-        <p className="mb-4">Ingrese y confirme su nueva contraseña.</p>
-        <form onSubmit={handleSubmitNewPassword}>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Nueva Contraseña</label>
-            <input
-              type="password"
-              value={newPassword}
-              onChange={(e) => {
-                setNewPassword(e.target.value);
-                if (error) setError('');
-              }}
-              className="w-full p-2 border rounded"
-              placeholder="Ingrese la nueva contraseña"
-              required
-              minLength={6}
-              autoFocus
-            />
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50 transition-opacity duration-300">
+      <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300 scale-100">
+        <div className="flex items-center mb-4">
+          <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg mr-3">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-blue-600 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+            </svg>
           </div>
-          <div className="mb-4">
-            <label className="block text-gray-700 mb-2">Confirmar Nueva Contraseña</label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => {
-                setConfirmPassword(e.target.value);
-                if (error) setError('');
-              }}
-              className="w-full p-2 border rounded"
-              placeholder="Confirme la nueva contraseña"
-              required
-              minLength={6}
-            />
-            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Nueva Contraseña</h2>
+        </div>
+        <p className="text-gray-600 dark:text-gray-300 mb-6">Cree una nueva contraseña segura para su cuenta.</p>
+        
+        <form onSubmit={handleSubmitNewPassword} className="space-y-4">
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Nueva Contraseña</label>
+            <div className="relative">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => {
+                  setNewPassword(e.target.value);
+                  if (error) setError('');
+                }}
+                className={`w-full px-4 py-2.5 rounded-lg border ${
+                  error && newPassword.length < 6 
+                    ? 'border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900' 
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900'
+                } focus:outline-none transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                placeholder="••••••••"
+                required
+                minLength={6}
+                autoFocus
+              />
+              {error && newPassword.length < 6 && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">Mínimo 6 caracteres</p>
           </div>
-          <div className="flex justify-end space-x-2">
+          
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Confirmar Contraseña</label>
+            <div className="relative">
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => {
+                  setConfirmPassword(e.target.value);
+                  if (error) setError('');
+                }}
+                className={`w-full px-4 py-2.5 rounded-lg border ${
+                  error && (newPassword !== confirmPassword || confirmPassword.length < 6)
+                    ? 'border-red-500 focus:ring-2 focus:ring-red-200 dark:focus:ring-red-900' 
+                    : 'border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-900'
+                } focus:outline-none transition-all duration-200 bg-white dark:bg-gray-700 text-gray-900 dark:text-white`}
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+              {error && (newPassword !== confirmPassword || confirmPassword.length < 6) && (
+                <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                  <svg className="h-5 w-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                </div>
+              )}
+            </div>
+            {error && (newPassword !== confirmPassword || confirmPassword.length < 6) && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{error}</p>
+            )}
+            {newPassword && confirmPassword && newPassword === confirmPassword && newPassword.length >= 6 && (
+              <p className="mt-1 text-sm text-green-600 dark:text-green-400 flex items-center">
+                <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Las contraseñas coinciden
+              </p>
+            )}
+          </div>
+          
+          <div className="flex flex-col space-y-3 pt-2">
+            <div className="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2">
+              <div 
+                className={`h-2 rounded-full transition-all duration-300 ${
+                  !newPassword ? 'bg-gray-200 w-0' :
+                  newPassword.length < 6 ? 'bg-red-500 w-1/4' :
+                  newPassword.length < 9 ? 'bg-yellow-500 w-2/4' :
+                  'bg-green-500 w-full'
+                }`}
+              ></div>
+            </div>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              {!newPassword ? 'Seguridad de la contraseña' :
+               newPassword.length < 6 ? 'Débil' :
+               newPassword.length < 9 ? 'Moderada' : 'Fuerte'}
+            </p>
+          </div>
+          
+          <div className="flex justify-end space-x-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border rounded"
+              className="px-5 py-2.5 text-sm font-medium rounded-lg border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-gray-800 transition-colors duration-200"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              disabled={!newPassword || !confirmPassword || newPassword !== confirmPassword}
+              disabled={!newPassword || !confirmPassword || newPassword !== confirmPassword || newPassword.length < 6}
+              className={`px-5 py-2.5 text-sm font-medium rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors duration-200 ${
+                !newPassword || !confirmPassword || newPassword !== confirmPassword || newPassword.length < 6
+                  ? 'bg-blue-400 dark:bg-blue-500 cursor-not-allowed text-white'
+                  : 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500 focus:ring-offset-2 dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-600 dark:focus:ring-offset-gray-800 transform hover:scale-[1.02] active:scale-[0.98] transition-transform'
+              }`}
             >
               Actualizar Contraseña
             </button>
@@ -334,7 +471,7 @@ const Usuarios = () => {
 
   return (
     <div className="container mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Perfil de Usuario</h1>
+      <h1 className="text-2xl font-bold mb-6">Administración de usuario</h1>
       
       {notification && (
         <div className={`mb-6 p-4 rounded ${
