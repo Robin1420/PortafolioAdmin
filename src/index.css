@@ -1,3 +1,76 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --primary-color: #3b82f6;
+  --primary-light: #60a5fa;
+  --primary-lighter: #93c5fd;
+  --primary-lightest: #dbeafe;
+}
+
+/* Estilos para la barra de navegación */
+nav, .mobile-nav, .sidebar {
+  background-color: #3b82f6 !important; /* Azul estándar */
+  transition: background-color 0.3s ease;
+}
+
+/* Estilos para botones primarios - Específicos para mantener consistencia */
+.bg-blue-600 {
+  background-color: #2563eb !important; /* Un azul ligeramente más oscuro para mejor contraste */
+}
+
+.hover\:bg-blue-700:hover {
+  background-color: #1d4ed8 !important;
+}
+
+/* Estilos para mensajes de error */
+.bg-red-100 {
+  background-color: #fee2e2 !important; /* Fondo rojo claro */
+}
+
+.text-red-700 {
+  color: #b91c1c !important; /* Texto rojo oscuro */
+}
+
+/* Fondo blanco para contenido principal */
+.bg-white {
+  background-color: #ffffff !important;
+}
+
+/* Texto oscuro para mejor legibilidad */
+.text-gray-800 {
+  color: #1f2937 !important;
+}
+
+/* Estilos para enlaces */
+.text-blue-600 {
+  color: #2563eb !important;
+}
+
+.hover\:text-blue-700:hover {
+  color: #1d4ed8 !important;
+}
+
+/* Estilos para el dashboard */
+.bg-primary {
+  background-color: var(--primary-lightest);
+}
+
+/* Asegurar que las tarjetas y secciones tengan un fondo blanco */
+.bg-white {
+  background-color: white;
+}
+
+/* Estilos para la barra de navegación móvil */
+@media (max-width: 768px) {
+  .mobile-nav {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    padding: 0.75rem 0;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1);
+  }
+}

@@ -119,7 +119,7 @@ const DatosPersonalesView = () => {
           <CvModal 
             isOpen={showCvModal}
             onClose={() => setShowCvModal(false)}
-            cvUrl={datos[0]?.cv ? `http://localhost:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
+            cvUrl={datos[0]?.cv ? `${window.location.protocol}//${window.location.hostname}:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
             onCvChange={handleCvUpload}
             isSubmitting={isSubmitting}
             showNotification={showNotification}
@@ -139,7 +139,7 @@ const DatosPersonalesView = () => {
       <CvModal 
         isOpen={showCvModal}
         onClose={() => setShowCvModal(false)}
-        cvUrl={datos[0]?.cv ? `http://localhost:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
+        cvUrl={datos[0]?.cv ? `${window.location.protocol}//${window.location.hostname}:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
         onCvChange={handleCvUpload}
         isSubmitting={isSubmitting}
       />
@@ -200,18 +200,27 @@ const DatosPersonalesView = () => {
                       <div className="w-56 h-56 lg:w-64 lg:h-64 rounded-full overflow-hidden border-4 border-white shadow-lg bg-gray-100 hover:opacity-90 transition-all duration-300 transform hover:scale-105">
                         <img 
                           className="w-full h-full object-cover" 
-                          src={datos[0]?.foto_perfil ? `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}` : ''}
+                          src={datos[0]?.foto_perfil ? `${window.location.protocol}//${window.location.hostname}:5000/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}` : ''}
                           alt="Foto de perfil"
                           onError={(e) => {
-                            e.target.onerror = null;
-                            e.target.src = '';
-                            // Mostrar un placeholder con un ícono
-                            e.target.parentElement.innerHTML = `
-                              <div class="w-full h-full flex items-center justify-center text-gray-400">
+                            try {
+                              e.target.onerror = null;
+                              e.target.src = '';
+                              // Crear el elemento de placeholder
+                              const placeholder = document.createElement('div');
+                              placeholder.className = 'w-full h-full flex items-center justify-center text-gray-400';
+                              placeholder.innerHTML = `
                                 <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                              </div>`;
+                                </svg>`;
+                              
+                              // Reemplazar la imagen con el placeholder de manera segura
+                              if (e.target.parentNode) {
+                                e.target.parentNode.replaceChild(placeholder, e.target);
+                              }
+                            } catch (error) {
+                              console.error('Error al cargar la imagen de perfil:', error);
+                            }
                           }}
                         />
                       </div>
@@ -393,7 +402,7 @@ const DatosPersonalesView = () => {
                   <div className="h-full w-full rounded-full border-4 border-white shadow-lg bg-white overflow-hidden">
                     <img 
                       className="w-full h-full object-cover" 
-                      src={`http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${localStorage.getItem('profile_photo_timestamp') || '0'}`}
+                      src={`${window.location.protocol}//${window.location.hostname}:5000/assets/DatosPersonales/foto/foto.png?t=${localStorage.getItem('profile_photo_timestamp') || '0'}`}
                       alt="Foto de perfil"
                       onError={(e) => {
                         console.error('Error al cargar la imagen:', e);
@@ -589,7 +598,7 @@ const DatosPersonalesView = () => {
           onClose={closeArchivosModal}
           fotoPerfil={
             formData?.foto_perfil 
-              ? `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}`
+              ? `${window.location.protocol}//${window.location.hostname}:5000/assets/DatosPersonales/foto/foto.png?t=${new Date().getTime()}`
               : ''
           }
           onCambiarFoto={handleImageChange}
@@ -602,7 +611,7 @@ const DatosPersonalesView = () => {
         <CvModal
           isOpen={showCvModal}
           onClose={() => setShowCvModal(false)}
-          cvUrl={datos[0]?.cv ? `http://localhost:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
+          cvUrl={datos[0]?.cv ? `${window.location.protocol}//${window.location.hostname}:5000/assets/DatosPersonales/documento/${datos[0].cv}?t=${new Date().getTime()}` : ''}
           onCvChange={handleCvUpload}
           isSubmitting={isSubmitting}
           showNotification={showNotification}

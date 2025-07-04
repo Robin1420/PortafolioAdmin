@@ -15,7 +15,7 @@ const Experiencia = lazy(() => import('../components/Experiencia/Experiencia.vie
 const Proyectos = lazy(() => import('../components/Proyectos/Proyectos.view'));
 const Certificados = lazy(() => import('../components/Certificados/Certificados.view'));
 const RedesSociales = lazy(() => import('../components/RedesSociales/RedesSociales.view'));
-const Usuarios = lazy(() => import('../components/Usuarios/Usuarios.view'));
+const Usuarios = lazy(() => import('../components/Usuarios/Usuarios.view').then(module => ({ default: module.default })));
 const Skills = lazy(() => import('../components/Skills/Skills.view'));
 
 // Componente de carga

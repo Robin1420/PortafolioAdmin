@@ -233,13 +233,13 @@ const ProyectosView = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {proyectos.map((proyecto) => (
           <div key={proyecto.id} className="group bg-white rounded-xl shadow-xl overflow-hidden hover:shadow-2xl transition-all duration-300 relative border border-gray-100 hover:z-10 hover:scale-105">
-            {/* Botones de acción - Solo se muestran al pasar el mouse */}
-            <div className="absolute top-2 right-2 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            {/* Botones de acción - Siempre visibles en móvil, solo al hover en desktop */}
+            <div className="absolute top-2 right-2 flex space-x-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleOpenEditModal(proyecto);
-                }}
+                }}E
                 className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors p-2 rounded-lg"
                 title="Editar proyecto"
                 disabled={isSubmitting}

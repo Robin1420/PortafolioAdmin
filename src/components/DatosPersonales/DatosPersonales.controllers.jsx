@@ -100,7 +100,8 @@ export const useDatosPersonales = () => {
       const formData = new FormData();
       formData.append('foto', file);
       
-      const response = await fetch('http://localhost:5000/api/upload', {
+      const apiUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/upload`;
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData
       });
@@ -113,7 +114,7 @@ export const useDatosPersonales = () => {
       
       // Actualizar la URL de la imagen con un timestamp para evitar caché
       const timestamp = new Date().getTime();
-      const imageUrl = `http://localhost:5000/assets/DatosPersonales/foto/foto.png?t=${timestamp}`;
+      const imageUrl = `${window.location.protocol}//${window.location.hostname}:5000/assets/DatosPersonales/foto/foto.png?t=${timestamp}`;
       
       // Actualizar el estado local
       setFormData(prev => ({
@@ -197,7 +198,8 @@ export const useDatosPersonales = () => {
       const currentCvName = datos[0]?.cv || `cv-${Date.now()}.${file.name.split('.').pop()}`;
       formData.append('cv_nombre', currentCvName);
       
-      const response = await fetch('http://localhost:5000/api/upload-cv', {
+      const apiUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/upload-cv`;
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
       });
@@ -278,7 +280,8 @@ export const useDatosPersonales = () => {
       formData.append('cv_nombre', currentCvName);
       
       // Hacer la petición al servidor
-      const response = await fetch('http://localhost:5000/api/upload-cv', {
+      const apiUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/upload-cv`;
+      const response = await fetch(apiUrl, {
         method: 'POST',
         body: formData,
       });
@@ -456,7 +459,8 @@ export const useDatosPersonales = () => {
         formData.append('cv', selectedFile);
         formData.append('cv_nombre', `cv-${Date.now()}.${selectedFile.name.split('.').pop()}`);
         
-        const response = await fetch('http://localhost:5000/api/upload-cv', {
+        const apiUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/upload-cv`;
+      const response = await fetch(apiUrl, {
           method: 'POST',
           body: formData,
         });

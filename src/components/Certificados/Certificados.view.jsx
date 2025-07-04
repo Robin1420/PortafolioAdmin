@@ -101,7 +101,7 @@ const Certificados = () => {
             className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 border border-gray-200"
           >
             <div className="relative group">
-              <div className="absolute top-3 right-3 flex space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="absolute top-3 right-3 flex space-x-2 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

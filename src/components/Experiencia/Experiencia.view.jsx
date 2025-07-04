@@ -129,12 +129,12 @@ const ExperienciaView = () => {
               className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4 border-blue-500 relative animate-pulse"
             >
               {/* Botones de acción */}
-              <div className="absolute top-4 right-4 flex space-x-2">
+              <div className="flex absolute top-4 right-4 space-x-2 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-200">
                 <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
                 <div className="w-8 h-8 bg-gray-100 rounded-lg"></div>
               </div>
               
-              <div className="p-6 pt-12">
+              <div className="p-6 pt-16 sm:pt-12">
                 {/* Encabezado */}
                 <div className="flex justify-between items-start">
                   <div className="space-y-2">
@@ -215,9 +215,10 @@ const ExperienciaView = () => {
         {experiencias.map((exp) => (
           <div 
             key={exp.id} 
-            className="bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4 border-blue-500 relative"
+            className="group bg-white rounded-lg shadow-md overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4 border-blue-500 relative"
           >
-            <div className="absolute top-4 right-4 flex space-x-2">
+            {/* Botones para móviles */}
+            <div className="flex sm:hidden absolute top-4 right-4 space-x-2 z-10">
               <button
                 onClick={() => handleOpenEditarModal(exp)}
                 className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors p-2 rounded-lg"
@@ -238,7 +239,30 @@ const ExperienciaView = () => {
                 </svg>
               </button>
             </div>
-            <div className="p-6 pt-12">
+
+            {/* Botones para desktop (solo visibles al hacer hover) */}
+            <div className="hidden sm:flex absolute top-4 right-4 space-x-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10">
+              <button
+                onClick={() => handleOpenEditarModal(exp)}
+                className="bg-blue-50 hover:bg-blue-100 text-blue-600 hover:text-blue-700 transition-colors p-2 rounded-lg"
+                title="Editar"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                onClick={() => handleDeleteClick(exp.id)}
+                className="bg-red-50 hover:bg-red-100 text-red-600 hover:text-red-700 transition-colors p-2 rounded-lg"
+                title="Eliminar"
+                disabled={isSubmitting}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 pt-16 sm:pt-12">
               <div className="flex justify-between items-start">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800">{exp.puesto}</h2>
